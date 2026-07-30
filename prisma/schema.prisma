@@ -5,6 +5,7 @@ generator client {
 datasource db {
   provider = "postgresql" // o "mysql" / "sqlite" dependiendo de tu configuración
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {

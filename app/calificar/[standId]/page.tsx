@@ -1,19 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Star, Send, CheckCircle, AlertTriangle, Loader2 } from "lucide-react";
 import { obtenerInfoEncuesta, enviarCalificacion } from "@/actions/ratingActions";
 
-export default function CalificarPage() {
+// Usamos el formato oficial de Next.js para atrapar el ID de la URL
+export default function CalificarPage(props: { params: Promise<{ standId: string }> }) {
+  const { standId } = use(props.params); 
   const router = useRouter();
-  const params = useParams();
   
-  // SOLUCIÓN AL 404: Extracción 100% segura del ID del stand
-  const standId = (params?.standId || params?.id) as string;
-
   const { data: session, status } = useSession();
 
   const [loadingData, setLoadingData] = useState(true);
@@ -32,24 +30,29 @@ export default function CalificarPage() {
     if (!standId) return;
 
     if (status === "unauthenticated") {
-      // SOLUCIÓN AL 404: Codificamos la URL para evitar que se rompa al pasarla por parámetro
-      const callbackUrl = encodeURIComponent(`/calificar/${standId}`);
-      router.push(`/login?callbackUrl=${callbackUrl}`);
+      // Redirección dura y limpia al login, sin usar el enrutador interno que causa el 404
+      const callback = encodeURIComponent(`/calificar/${standId}`);
+      window.location.href = `/login?callbackUrl=${callback}`;
     } else if (status === "authenticated" && session?.user?.id) {
       cargarDatos(session.user.id);
     }
-  }, [status, session, standId, router]);
+  }, [status, session, standId]);
 
   const cargarDatos = async (clienteId: string) => {
-    const data = await obtenerInfoEncuesta(standId, clienteId);
-    if (data.error) {
-      setErrorInfo(data.error);
-    } else {
-      setStandNombre(data.standNombre || "Stand");
-      setYaCalifico(data.yaCalifico!);
-      setActivarEstrellas(data.activarEstrellas!);
+    try {
+      const data = await obtenerInfoEncuesta(standId, clienteId);
+      if (data.error) {
+        setErrorInfo(data.error);
+      } else {
+        setStandNombre(data.standNombre || "Stand");
+        setYaCalifico(data.yaCalifico!);
+        setActivarEstrellas(data.activarEstrellas!);
+      }
+    } catch (error) {
+      setErrorInfo("Error de conexión al cargar la encuesta. Intenta de nuevo.");
+    } finally {
+      setLoadingData(false);
     }
-    setLoadingData(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -57,23 +60,29 @@ export default function CalificarPage() {
     if (!comentario.trim() || !session?.user?.id) return;
     
     setEnviando(true);
-    const res = await enviarCalificacion(
-      session.user.id,
-      standId,
-      comentario,
-      activarEstrellas ? estrellas : null
-    );
+    try {
+      const res = await enviarCalificacion(
+        session.user.id,
+        standId,
+        comentario,
+        activarEstrellas ? estrellas : null
+      );
 
-    if (res.success) {
-      setExito(true);
-      setTimeout(() => {
-        router.push("/cliente");
-      }, 3000);
-    } else {
+      if (res.success) {
+        setExito(true);
+        setTimeout(() => {
+          router.push("/cliente");
+        }, 3000);
+      } else {
+        setEnviando(false);
+      }
+    } catch (error) {
       setEnviando(false);
+      setErrorInfo("Hubo un error al enviar tu calificación.");
     }
   };
 
+  // 1. Pantalla de carga ultrarrápida mientras lee la sesión local
   if (status === "loading" || !standId) {
     return (
       <div className="min-h-screen bg-neutral-950 flex flex-col justify-center items-center text-fuchsia-500">
@@ -83,6 +92,7 @@ export default function CalificarPage() {
     );
   }
 
+  // 2. Pantalla de carga mientras trae los datos de la base de datos
   if (status === "authenticated" && loadingData) {
     return (
       <div className="min-h-screen bg-neutral-950 flex flex-col justify-center items-center text-fuchsia-500">
@@ -92,14 +102,17 @@ export default function CalificarPage() {
     );
   }
 
+  // 3. Pantalla de Error
   if (errorInfo) return (
     <div className="min-h-screen bg-neutral-950 flex flex-col justify-center items-center text-center p-6">
       <AlertTriangle className="w-16 h-16 text-red-500 mb-4" />
       <h1 className="text-2xl font-bold text-white mb-2">Ups, algo salió mal</h1>
-      <p className="text-neutral-400">{errorInfo}</p>
+      <p className="text-neutral-400 mb-6">{errorInfo}</p>
+      <button onClick={() => window.location.reload()} className="bg-neutral-800 text-white px-6 py-2 rounded-lg hover:bg-neutral-700">Reintentar</button>
     </div>
   );
 
+  // 4. Si ya calificó
   if (yaCalifico) return (
     <div className="min-h-screen bg-neutral-950 flex flex-col justify-center items-center text-center p-6 relative overflow-hidden">
       <div className="absolute inset-0 bg-linear-to-b from-fuchsia-900/20 to-neutral-950" />
@@ -112,6 +125,7 @@ export default function CalificarPage() {
     </div>
   );
 
+  // 5. Formulario de Calificación
   return (
     <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center p-4 relative overflow-hidden">
       <div className="absolute top-[-10%] right-[-10%] w-72 h-72 bg-fuchsia-600/20 rounded-full blur-[100px] pointer-events-none" />
