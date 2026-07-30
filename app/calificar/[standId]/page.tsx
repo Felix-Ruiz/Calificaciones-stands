@@ -1,16 +1,18 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Star, Send, CheckCircle, AlertTriangle, Loader2 } from "lucide-react";
 import { obtenerInfoEncuesta, enviarCalificacion } from "@/actions/ratingActions";
 
-// Usamos el formato oficial de Next.js para atrapar el ID de la URL
-export default function CalificarPage(props: { params: Promise<{ standId: string }> }) {
-  const { standId } = use(props.params); 
+export default function CalificarPage() {
   const router = useRouter();
+  
+  // SOLUCIÓN AL CRASH: Usamos useParams() que es 100% estable y no rompe la página
+  const params = useParams();
+  const standId = params?.standId as string;
   
   const { data: session, status } = useSession();
 
@@ -27,13 +29,15 @@ export default function CalificarPage(props: { params: Promise<{ standId: string
   const [exito, setExito] = useState(false);
 
   useEffect(() => {
+    // Si no hay standId aún, esperamos (evita errores)
     if (!standId) return;
 
     if (status === "unauthenticated") {
-      // Redirección dura y limpia al login, sin usar el enrutador interno que causa el 404
+      // Si no tiene sesión, enviarlo al login al instante indicando a dónde debe volver
       const callback = encodeURIComponent(`/calificar/${standId}`);
       window.location.href = `/login?callbackUrl=${callback}`;
     } else if (status === "authenticated" && session?.user?.id) {
+      // Si tiene sesión, cargar los datos de la base de datos
       cargarDatos(session.user.id);
     }
   }, [status, session, standId]);
@@ -82,7 +86,7 @@ export default function CalificarPage(props: { params: Promise<{ standId: string
     }
   };
 
-  // 1. Pantalla de carga ultrarrápida mientras lee la sesión local
+  // 1. Cargando la sesión (Debería tomar milisegundos)
   if (status === "loading" || !standId) {
     return (
       <div className="min-h-screen bg-neutral-950 flex flex-col justify-center items-center text-fuchsia-500">
@@ -92,7 +96,7 @@ export default function CalificarPage(props: { params: Promise<{ standId: string
     );
   }
 
-  // 2. Pantalla de carga mientras trae los datos de la base de datos
+  // 2. Cargando la base de datos (Solo visible si ya inició sesión)
   if (status === "authenticated" && loadingData) {
     return (
       <div className="min-h-screen bg-neutral-950 flex flex-col justify-center items-center text-fuchsia-500">
@@ -102,7 +106,7 @@ export default function CalificarPage(props: { params: Promise<{ standId: string
     );
   }
 
-  // 3. Pantalla de Error
+  // 3. Manejo de Errores Visuales
   if (errorInfo) return (
     <div className="min-h-screen bg-neutral-950 flex flex-col justify-center items-center text-center p-6">
       <AlertTriangle className="w-16 h-16 text-red-500 mb-4" />
@@ -112,7 +116,7 @@ export default function CalificarPage(props: { params: Promise<{ standId: string
     </div>
   );
 
-  // 4. Si ya calificó
+  // 4. Si el visitante ya calificó este stand
   if (yaCalifico) return (
     <div className="min-h-screen bg-neutral-950 flex flex-col justify-center items-center text-center p-6 relative overflow-hidden">
       <div className="absolute inset-0 bg-linear-to-b from-fuchsia-900/20 to-neutral-950" />
@@ -120,12 +124,12 @@ export default function CalificarPage(props: { params: Promise<{ standId: string
       <h1 className="text-3xl font-bold text-white mb-4 relative z-10">¡Ya calificaste este Stand!</h1>
       <p className="text-neutral-400 mb-8 relative z-10">Gracias por tu participación. No puedes calificar el mismo stand más de una vez.</p>
       <button onClick={() => router.push("/cliente")} className="relative z-10 bg-neutral-800 text-white px-8 py-3 rounded-xl font-medium hover:bg-neutral-700 transition-all">
-        Volver a mi inicio
+        Volver a mi panel
       </button>
     </div>
   );
 
-  // 5. Formulario de Calificación
+  // 5. El Formulario Real
   return (
     <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center p-4 relative overflow-hidden">
       <div className="absolute top-[-10%] right-[-10%] w-72 h-72 bg-fuchsia-600/20 rounded-full blur-[100px] pointer-events-none" />
