@@ -1,27 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter, useParams } from "next/navigation";
+import { useEffect, useState, use } from "react";
+import { getSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Star, Send, CheckCircle, AlertTriangle, Loader2 } from "lucide-react";
 import { obtenerInfoEncuesta, enviarCalificacion } from "@/actions/ratingActions";
 
-export default function CalificarPage() {
+export default function CalificarPage({ params }: { params: Promise<{ standId: string }> }) {
   const router = useRouter();
   
-  // SOLUCIÓN AL CRASH: Usamos useParams() que es 100% estable y no rompe la página
-  const params = useParams();
-  const standId = params?.standId as string;
-  
-  const { data: session, status } = useSession();
+  // Usamos el formato oficial y seguro para leer el ID (que tú tenías originalmente)
+  const { standId } = use(params);
 
+  // Estados de sesión
+  const [userId, setUserId] = useState<string | null>(null);
+  const [loadingAuth, setLoadingAuth] = useState(true);
+
+  // Estados de datos
   const [loadingData, setLoadingData] = useState(true);
   const [standNombre, setStandNombre] = useState("");
   const [yaCalifico, setYaCalifico] = useState(false);
   const [activarEstrellas, setActivarEstrellas] = useState(true);
   const [errorInfo, setErrorInfo] = useState("");
 
+  // Estados del Formulario
   const [comentario, setComentario] = useState("");
   const [estrellas, setEstrellas] = useState(0);
   const [hoverEstrellas, setHoverEstrellas] = useState(0);
@@ -29,18 +32,32 @@ export default function CalificarPage() {
   const [exito, setExito] = useState(false);
 
   useEffect(() => {
-    // Si no hay standId aún, esperamos (evita errores)
-    if (!standId) return;
+    const verificarSesion = async () => {
+      try {
+        // getSession() no rompe la página y AHORA es rapidísimo gracias al puerto 6543
+        const session = await getSession();
+        
+        if (!session?.user?.id) {
+          // Redirección dura e inmediata si no hay sesión
+          const callback = encodeURIComponent(`/calificar/${standId}`);
+          window.location.href = `/login?callbackUrl=${callback}`;
+          return;
+        }
+        
+        setUserId(session.user.id);
+        setLoadingAuth(false);
+        cargarDatos(session.user.id);
+        
+      } catch (error) {
+        setErrorInfo("Error al verificar tu cuenta.");
+        setLoadingAuth(false);
+      }
+    };
 
-    if (status === "unauthenticated") {
-      // Si no tiene sesión, enviarlo al login al instante indicando a dónde debe volver
-      const callback = encodeURIComponent(`/calificar/${standId}`);
-      window.location.href = `/login?callbackUrl=${callback}`;
-    } else if (status === "authenticated" && session?.user?.id) {
-      // Si tiene sesión, cargar los datos de la base de datos
-      cargarDatos(session.user.id);
+    if (standId) {
+      verificarSesion();
     }
-  }, [status, session, standId]);
+  }, [standId]);
 
   const cargarDatos = async (clienteId: string) => {
     try {
@@ -61,12 +78,12 @@ export default function CalificarPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!comentario.trim() || !session?.user?.id) return;
+    if (!comentario.trim() || !userId) return;
     
     setEnviando(true);
     try {
       const res = await enviarCalificacion(
-        session.user.id,
+        userId,
         standId,
         comentario,
         activarEstrellas ? estrellas : null
@@ -86,8 +103,8 @@ export default function CalificarPage() {
     }
   };
 
-  // 1. Cargando la sesión (Debería tomar milisegundos)
-  if (status === "loading" || !standId) {
+  // 1. Pantalla mientras revisa si estás logueado (Tomará milisegundos)
+  if (loadingAuth) {
     return (
       <div className="min-h-screen bg-neutral-950 flex flex-col justify-center items-center text-fuchsia-500">
         <Loader2 className="w-12 h-12 animate-spin mb-4" />
@@ -96,8 +113,8 @@ export default function CalificarPage() {
     );
   }
 
-  // 2. Cargando la base de datos (Solo visible si ya inició sesión)
-  if (status === "authenticated" && loadingData) {
+  // 2. Pantalla mientras trae la info del Stand (Solo la ves si YA iniciaste sesión)
+  if (loadingData) {
     return (
       <div className="min-h-screen bg-neutral-950 flex flex-col justify-center items-center text-fuchsia-500">
         <Loader2 className="w-12 h-12 animate-spin mb-4" />
@@ -106,7 +123,7 @@ export default function CalificarPage() {
     );
   }
 
-  // 3. Manejo de Errores Visuales
+  // 3. Si hay error (Stand no existe, etc)
   if (errorInfo) return (
     <div className="min-h-screen bg-neutral-950 flex flex-col justify-center items-center text-center p-6">
       <AlertTriangle className="w-16 h-16 text-red-500 mb-4" />
@@ -116,7 +133,7 @@ export default function CalificarPage() {
     </div>
   );
 
-  // 4. Si el visitante ya calificó este stand
+  // 4. Si ya calificó
   if (yaCalifico) return (
     <div className="min-h-screen bg-neutral-950 flex flex-col justify-center items-center text-center p-6 relative overflow-hidden">
       <div className="absolute inset-0 bg-linear-to-b from-fuchsia-900/20 to-neutral-950" />
@@ -124,12 +141,12 @@ export default function CalificarPage() {
       <h1 className="text-3xl font-bold text-white mb-4 relative z-10">¡Ya calificaste este Stand!</h1>
       <p className="text-neutral-400 mb-8 relative z-10">Gracias por tu participación. No puedes calificar el mismo stand más de una vez.</p>
       <button onClick={() => router.push("/cliente")} className="relative z-10 bg-neutral-800 text-white px-8 py-3 rounded-xl font-medium hover:bg-neutral-700 transition-all">
-        Volver a mi panel
+        Volver a mi inicio
       </button>
     </div>
   );
 
-  // 5. El Formulario Real
+  // 5. Encuesta Principal
   return (
     <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center p-4 relative overflow-hidden">
       <div className="absolute top-[-10%] right-[-10%] w-72 h-72 bg-fuchsia-600/20 rounded-full blur-[100px] pointer-events-none" />
