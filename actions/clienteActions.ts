@@ -7,6 +7,15 @@ export async function cargarClientesMasivos(clientesData: any[]) {
   try {
     const nuevosClientes = clientesData.map((cliente: any) => {
       
+      // 1. Buscamos el documento en todas las variantes posibles de tu Excel
+      const docRaw = cliente["NÚMERO DE DOCUMENTO"] || cliente["NUMERO DE DOCUMENTO"] || 
+                     cliente.documento || cliente.Documento || cliente.DOCUMENTO || 
+                     cliente.cedula || cliente.Cédula || cliente.CEDULA || 
+                     cliente.username || cliente.Username || cliente.USERNAME;
+                     
+      // Si la fila viene vacía, generamos un ID temporal de respaldo
+      const docSeguro = docRaw ? String(docRaw) : String(Math.floor(Math.random() * 100000000));
+
       // Extraemos el teléfono probando todas las combinaciones posibles, incluyendo "TELÉFONO MÓVIL"
       const t = cliente.telefono || cliente.Telefono || cliente.TELEFONO || cliente.Teléfono || cliente.TELÉFONO || cliente.Celular || cliente.CELULAR || cliente["TELÉFONO MÓVIL"] || cliente["TELEFONO MOVIL"] || cliente["Teléfono móvil"] || cliente["Telefono movil"];
 
@@ -15,8 +24,10 @@ export async function cargarClientesMasivos(clientesData: any[]) {
 
       return {
         role: "CLIENTE" as const,
-        username: String(cliente.username || cliente.Documento || cliente.DOCUMENTO || Math.floor(Math.random() * 100000000)),
-        password: String(cliente.password || cliente.Documento || cliente.DOCUMENTO || "123456"),
+        
+        // SOLUCIÓN APLICADA: Usamos el documento EXACTO para el usuario y la contraseña
+        username: docSeguro,
+        password: docSeguro,
         
         nombres: cliente.nombres || cliente.Nombres || cliente.NOMBRES || cliente.nombre || cliente.Nombre || cliente.NOMBRE || "",
         

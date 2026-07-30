@@ -2,11 +2,10 @@
 
 import { useState, Suspense } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Eye, EyeOff, User, Lock, LogIn, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 
-// 1. Convertimos tu componente principal en el "Contenido" del Login
 function LoginContent() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -14,8 +13,7 @@ function LoginContent() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   
-  const router = useRouter();
-  const searchParams = useSearchParams(); // Vercel exige que esto esté dentro de un Suspense
+  const searchParams = useSearchParams();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,14 +31,16 @@ function LoginContent() {
       setLoading(false);
     } else {
       const callbackUrl = searchParams.get("callbackUrl") || "/";
-      router.push(callbackUrl);
-      router.refresh();
+      
+      // SOLUCIÓN AL ERROR 404: 
+      // En lugar de usar router.push() que usa la caché del framework,
+      // obligamos al navegador a hacer una redirección física y limpia.
+      window.location.href = callbackUrl;
     }
   };
 
   return (
     <div className="min-h-screen bg-neutral-950 flex flex-col justify-center items-center p-4 relative overflow-hidden">
-      {/* Luces de fondo */}
       <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-fuchsia-600/20 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-10%] left-[-10%] w-96 h-96 bg-purple-600/20 rounded-full blur-[120px] pointer-events-none" />
 
@@ -129,7 +129,6 @@ function LoginContent() {
   );
 }
 
-// 2. Exportamos la página principal envuelta en Suspense
 export default function LoginPage() {
   return (
     <Suspense 
