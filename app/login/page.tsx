@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, User, Lock, LogIn, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 
-export default function LoginPage() {
+// 1. Convertimos tu componente principal en el "Contenido" del Login
+function LoginContent() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -14,7 +15,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   
   const router = useRouter();
-  const searchParams = useSearchParams(); // <-- NUEVO: Para leer de dónde venía el usuario
+  const searchParams = useSearchParams(); // Vercel exige que esto esté dentro de un Suspense
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +32,6 @@ export default function LoginPage() {
       setError("Usuario o contraseña incorrectos");
       setLoading(false);
     } else {
-      // <-- NUEVO: Leer la URL de retorno, si no existe, mandarlo al inicio ("/")
       const callbackUrl = searchParams.get("callbackUrl") || "/";
       router.push(callbackUrl);
       router.refresh();
@@ -126,5 +126,20 @@ export default function LoginPage() {
         </form>
       </motion.div>
     </div>
+  );
+}
+
+// 2. Exportamos la página principal envuelta en Suspense
+export default function LoginPage() {
+  return (
+    <Suspense 
+      fallback={
+        <div className="min-h-screen bg-neutral-950 flex flex-col justify-center items-center">
+          <div className="w-12 h-12 border-4 border-fuchsia-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      }
+    >
+      <LoginContent />
+    </Suspense>
   );
 }
