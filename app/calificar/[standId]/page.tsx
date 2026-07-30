@@ -1,40 +1,41 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
-import { useSession } from "next-auth/react"; // <-- SOLUCIÓN: Hook optimizado y ultrarrápido
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter, useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Star, Send, CheckCircle, AlertTriangle, Loader2 } from "lucide-react";
 import { obtenerInfoEncuesta, enviarCalificacion } from "@/actions/ratingActions";
 
-export default function CalificarPage({ params }: { params: Promise<{ standId: string }> }) {
+export default function CalificarPage() {
   const router = useRouter();
-  const { standId } = use(params);
+  const params = useParams();
   
-  // Extraemos la sesión directamente de las cookies del navegador (Ultrarrápido)
+  // SOLUCIÓN AL 404: Extracción 100% segura del ID del stand
+  const standId = (params?.standId || params?.id) as string;
+
   const { data: session, status } = useSession();
 
-  // Estados de datos
   const [loadingData, setLoadingData] = useState(true);
   const [standNombre, setStandNombre] = useState("");
   const [yaCalifico, setYaCalifico] = useState(false);
   const [activarEstrellas, setActivarEstrellas] = useState(true);
   const [errorInfo, setErrorInfo] = useState("");
 
-  // Estados del Formulario
   const [comentario, setComentario] = useState("");
   const [estrellas, setEstrellas] = useState(0);
   const [hoverEstrellas, setHoverEstrellas] = useState(0);
   const [enviando, setEnviando] = useState(false);
   const [exito, setExito] = useState(false);
 
-  // Efecto reactivo: Decide al instante qué hacer según el estado de la sesión
   useEffect(() => {
+    if (!standId) return;
+
     if (status === "unauthenticated") {
-      // Si no hay sesión, lo manda al login en milisegundos y le dice a dónde volver
-      router.push(`/login?callbackUrl=/calificar/${standId}`);
+      // SOLUCIÓN AL 404: Codificamos la URL para evitar que se rompa al pasarla por parámetro
+      const callbackUrl = encodeURIComponent(`/calificar/${standId}`);
+      router.push(`/login?callbackUrl=${callbackUrl}`);
     } else if (status === "authenticated" && session?.user?.id) {
-      // Solo si ya está logueado, hacemos la consulta pesada a la base de datos
       cargarDatos(session.user.id);
     }
   }, [status, session, standId, router]);
@@ -73,8 +74,7 @@ export default function CalificarPage({ params }: { params: Promise<{ standId: s
     }
   };
 
-  // 1. MIENTRAS VERIFICA LA SESIÓN (Toma milisegundos)
-  if (status === "loading") {
+  if (status === "loading" || !standId) {
     return (
       <div className="min-h-screen bg-neutral-950 flex flex-col justify-center items-center text-fuchsia-500">
         <Loader2 className="w-12 h-12 animate-spin mb-4" />
@@ -83,7 +83,6 @@ export default function CalificarPage({ params }: { params: Promise<{ standId: s
     );
   }
 
-  // 2. MIENTRAS CARGA DATOS DE LA BD (Solo lo ven los logueados)
   if (status === "authenticated" && loadingData) {
     return (
       <div className="min-h-screen bg-neutral-950 flex flex-col justify-center items-center text-fuchsia-500">
@@ -93,7 +92,6 @@ export default function CalificarPage({ params }: { params: Promise<{ standId: s
     );
   }
 
-  // 3. SI HAY ERROR (Ej. Stand no existe)
   if (errorInfo) return (
     <div className="min-h-screen bg-neutral-950 flex flex-col justify-center items-center text-center p-6">
       <AlertTriangle className="w-16 h-16 text-red-500 mb-4" />
@@ -102,7 +100,6 @@ export default function CalificarPage({ params }: { params: Promise<{ standId: s
     </div>
   );
 
-  // 4. SI YA CALIFICÓ
   if (yaCalifico) return (
     <div className="min-h-screen bg-neutral-950 flex flex-col justify-center items-center text-center p-6 relative overflow-hidden">
       <div className="absolute inset-0 bg-linear-to-b from-fuchsia-900/20 to-neutral-950" />
@@ -115,7 +112,6 @@ export default function CalificarPage({ params }: { params: Promise<{ standId: s
     </div>
   );
 
-  // 5. ENCUESTA PRINCIPAL
   return (
     <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center p-4 relative overflow-hidden">
       <div className="absolute top-[-10%] right-[-10%] w-72 h-72 bg-fuchsia-600/20 rounded-full blur-[100px] pointer-events-none" />

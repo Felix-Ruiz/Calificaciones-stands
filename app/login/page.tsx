@@ -30,12 +30,26 @@ function LoginContent() {
       setError("Usuario o contraseña incorrectos");
       setLoading(false);
     } else {
-      const callbackUrl = searchParams.get("callbackUrl") || "/";
+      // SOLUCIÓN AL 404: Limpieza absoluta de la URL
+      const rawCallback = searchParams.get("callbackUrl");
+      let finalUrl = "/";
+
+      if (rawCallback) {
+        try {
+          // Si es una URL completa (http...), extraemos solo la ruta (ej. /calificar/123)
+          if (rawCallback.startsWith("http")) {
+            const urlObj = new URL(rawCallback);
+            finalUrl = urlObj.pathname + urlObj.search;
+          } else {
+            finalUrl = rawCallback;
+          }
+        } catch (err) {
+          finalUrl = rawCallback; // Fallback
+        }
+      }
       
-      // SOLUCIÓN AL ERROR 404: 
-      // En lugar de usar router.push() que usa la caché del framework,
-      // obligamos al navegador a hacer una redirección física y limpia.
-      window.location.href = callbackUrl;
+      // Forzamos una carga limpia desde el navegador para evitar el 404 de la caché
+      window.location.href = finalUrl;
     }
   };
 
