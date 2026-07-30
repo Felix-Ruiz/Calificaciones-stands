@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" // o "mysql" / "sqlite" dependiendo de tu configuración
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  role          Role     @default(CLIENTE)
+  username      String   @unique // Para Master/Stand es su usuario, para Cliente es su documento
+  password      String
+  
+  // Campos para Stands
+  nombreStand   String?
+  logo          String?
+  
+  // Campos para Clientes (Visitantes)
+  nombres       String?
+  apellidos     String?
+  institucion   String?
+  cargo         String?
+  telefono      String?
+  correo        String?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relaciones
+  calificacionesDadas     Rating[] @relation("ClienteRatings")
+  calificacionesRecibidas Rating[] @relation("StandRatings")
+  premiosGanados          LotteryWinner[]
+}
+
+model Rating {
+  id          String   @id @default(cuid())
+  estrellas   Int?     // Opcional, por si lo apagan en configuración
+  comentario  String   @db.Text
+  createdAt   DateTime @default(now())
+
+  // Relaciones
+  clienteId   String
+  cliente     User     @relation("ClienteRatings", fields: [clienteId], references: [id])
+  
+  standId     String
+  stand       User     @relation("StandRatings", fields: [standId], references: [id])
+
+  // Regla estricta: Un cliente solo puede calificar un stand una vez
+  @@unique([clienteId, standId])
+}
+
+model Settings {
+  id                       String  @id @default("global")
+  requiredStandsForLottery Int     @default(5)
+  activarEstrellas         Boolean @default(true)
+}
+
+model LotteryWinner {
+  id          String   @id @default(cuid())
+  detalles    String   @db.Text
+  createdAt   DateTime @default(now())
+
+  clienteId   String
+  cliente     User     @relation(fields: [clienteId], references: [id])
+}
+
+enum Role {
+  MASTER
+  STAND
+  CLIENTE
+}
