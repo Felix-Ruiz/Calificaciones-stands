@@ -1,19 +1,21 @@
 "use client";
 
 import { useEffect, useState, use } from "react";
-import { getSession } from "next-auth/react";
+import { useSession } from "next-auth/react"; // <-- SOLUCIÓN: Hook optimizado y ultrarrápido
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Star, Send, CheckCircle, AlertTriangle } from "lucide-react";
+import { Star, Send, CheckCircle, AlertTriangle, Loader2 } from "lucide-react";
 import { obtenerInfoEncuesta, enviarCalificacion } from "@/actions/ratingActions";
 
 export default function CalificarPage({ params }: { params: Promise<{ standId: string }> }) {
   const router = useRouter();
   const { standId } = use(params);
+  
+  // Extraemos la sesión directamente de las cookies del navegador (Ultrarrápido)
+  const { data: session, status } = useSession();
 
-  // Estados de sesión y datos
-  const [userId, setUserId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Estados de datos
+  const [loadingData, setLoadingData] = useState(true);
   const [standNombre, setStandNombre] = useState("");
   const [yaCalifico, setYaCalifico] = useState(false);
   const [activarEstrellas, setActivarEstrellas] = useState(true);
@@ -26,20 +28,16 @@ export default function CalificarPage({ params }: { params: Promise<{ standId: s
   const [enviando, setEnviando] = useState(false);
   const [exito, setExito] = useState(false);
 
+  // Efecto reactivo: Decide al instante qué hacer según el estado de la sesión
   useEffect(() => {
-    // Usamos getSession para mantener la consistencia con el resto de la app
-    const iniciar = async () => {
-      const session = await getSession();
-      if (session?.user?.id) {
-        setUserId(session.user.id);
-        await cargarDatos(session.user.id);
-      } else {
-        setErrorInfo("Sesión inválida. Por favor, inicia sesión nuevamente.");
-        setLoading(false);
-      }
-    };
-    iniciar();
-  }, []);
+    if (status === "unauthenticated") {
+      // Si no hay sesión, lo manda al login en milisegundos y le dice a dónde volver
+      router.push(`/login?callbackUrl=/calificar/${standId}`);
+    } else if (status === "authenticated" && session?.user?.id) {
+      // Solo si ya está logueado, hacemos la consulta pesada a la base de datos
+      cargarDatos(session.user.id);
+    }
+  }, [status, session, standId, router]);
 
   const cargarDatos = async (clienteId: string) => {
     const data = await obtenerInfoEncuesta(standId, clienteId);
@@ -50,16 +48,16 @@ export default function CalificarPage({ params }: { params: Promise<{ standId: s
       setYaCalifico(data.yaCalifico!);
       setActivarEstrellas(data.activarEstrellas!);
     }
-    setLoading(false);
+    setLoadingData(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!comentario.trim() || !userId) return;
+    if (!comentario.trim() || !session?.user?.id) return;
     
     setEnviando(true);
     const res = await enviarCalificacion(
-      userId,
+      session.user.id,
       standId,
       comentario,
       activarEstrellas ? estrellas : null
@@ -68,15 +66,34 @@ export default function CalificarPage({ params }: { params: Promise<{ standId: s
     if (res.success) {
       setExito(true);
       setTimeout(() => {
-        router.push("/cliente"); // Al terminar, lo mandamos a su inicio
+        router.push("/cliente");
       }, 3000);
     } else {
       setEnviando(false);
     }
   };
 
-  if (loading) return <div className="min-h-screen bg-neutral-950 flex justify-center items-center text-fuchsia-500">Cargando encuesta...</div>;
+  // 1. MIENTRAS VERIFICA LA SESIÓN (Toma milisegundos)
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen bg-neutral-950 flex flex-col justify-center items-center text-fuchsia-500">
+        <Loader2 className="w-12 h-12 animate-spin mb-4" />
+        <p className="font-bold tracking-widest uppercase text-sm animate-pulse">Verificando acceso...</p>
+      </div>
+    );
+  }
 
+  // 2. MIENTRAS CARGA DATOS DE LA BD (Solo lo ven los logueados)
+  if (status === "authenticated" && loadingData) {
+    return (
+      <div className="min-h-screen bg-neutral-950 flex flex-col justify-center items-center text-fuchsia-500">
+        <Loader2 className="w-12 h-12 animate-spin mb-4" />
+        <p className="font-bold tracking-widest uppercase text-sm animate-pulse">Cargando encuesta...</p>
+      </div>
+    );
+  }
+
+  // 3. SI HAY ERROR (Ej. Stand no existe)
   if (errorInfo) return (
     <div className="min-h-screen bg-neutral-950 flex flex-col justify-center items-center text-center p-6">
       <AlertTriangle className="w-16 h-16 text-red-500 mb-4" />
@@ -85,6 +102,7 @@ export default function CalificarPage({ params }: { params: Promise<{ standId: s
     </div>
   );
 
+  // 4. SI YA CALIFICÓ
   if (yaCalifico) return (
     <div className="min-h-screen bg-neutral-950 flex flex-col justify-center items-center text-center p-6 relative overflow-hidden">
       <div className="absolute inset-0 bg-linear-to-b from-fuchsia-900/20 to-neutral-950" />
@@ -97,6 +115,7 @@ export default function CalificarPage({ params }: { params: Promise<{ standId: s
     </div>
   );
 
+  // 5. ENCUESTA PRINCIPAL
   return (
     <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center p-4 relative overflow-hidden">
       <div className="absolute top-[-10%] right-[-10%] w-72 h-72 bg-fuchsia-600/20 rounded-full blur-[100px] pointer-events-none" />
