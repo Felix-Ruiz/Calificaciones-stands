@@ -2,10 +2,17 @@
 
 import { useState, useRef, useEffect } from "react";
 import { signOut } from "next-auth/react";
-import { Users, Store, Gift, Settings, LogOut, Upload, Star, Trophy, History, Play, Plus, X, Eye, MessageSquare, Edit, Trash2, Download, ExternalLink, Printer, Copy, ChevronRight, ChevronLeft, Maximize, AlertTriangle, Search, Sun, Moon, Globe } from "lucide-react";
+import { 
+  Users, Store, Gift, Settings, LogOut, Upload, Star, Trophy, 
+  History, Play, Plus, X, Eye, MessageSquare, Edit, Trash2, 
+  Download, ExternalLink, Printer, Copy, ChevronRight, ChevronLeft, 
+  Maximize, AlertTriangle, Search, Sun, Moon, Globe, PieChart as PieChartIcon, 
+  BarChart3 
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import * as XLSX from "xlsx";
 import QRCodeStyling from "qr-code-styling";
+import { PieChart, Pie, Legend, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { cargarStandsMasivos, obtenerStands, crearStandManual, actualizarStand, eliminarStand } from "@/actions/standActions";
 import { cargarClientesMasivos, obtenerClientes, actualizarCliente, eliminarCliente, eliminarTodosClientes } from "@/actions/clienteActions";
 import { obtenerAjustes, guardarAjustes, obtenerParticipantesSorteo, registrarGanador, obtenerHistorialGanadores, eliminarGanadorHistorial } from "@/actions/lotteryActions";
@@ -64,12 +71,12 @@ export default function MasterDashboard() {
     const savedTheme = localStorage.getItem("master-theme") as "dark" | "light";
     if (savedTheme) setTheme(savedTheme);
 
-    const savedLang = localStorage.getItem("master-lang") as "en" | "es";
+    const savedLang = localStorage.getItem("app-lang") as "en" | "es";
     if (savedLang) {
       setLanguage(savedLang);
     } else {
       setLanguage("en");
-      localStorage.setItem("master-lang", "en");
+      localStorage.setItem("app-lang", "en");
     }
 
     setMensaje("");
@@ -88,7 +95,7 @@ export default function MasterDashboard() {
   const toggleLanguage = () => {
     const newLang = language === "en" ? "es" : "en";
     setLanguage(newLang);
-    localStorage.setItem("master-lang", newLang);
+    localStorage.setItem("app-lang", newLang);
   };
 
   const isDark = theme === "dark";
@@ -151,7 +158,10 @@ export default function MasterDashboard() {
   const handleEliminarStand = (id: string, nombre: string) => {
     setConfirmDialog({
       isOpen: true,
-      message: t(`¿Estás seguro de que deseas eliminar el stand "${nombre}"? También se borrarán todas sus calificaciones.`, `Are you sure you want to delete the stand "${nombre}"? All of its ratings will also be deleted.`),
+      message: t(
+        `¿Estás seguro de que deseas eliminar el stand "${nombre}"? También se borrarán todas sus calificaciones.`, 
+        `Are you sure you want to delete the stand "${nombre}"? All of its ratings will also be deleted.`
+      ),
       onConfirm: async () => {
         setConfirmDialog({ ...confirmDialog, isOpen: false });
         setLoading(true);
@@ -180,7 +190,10 @@ export default function MasterDashboard() {
   const handleEliminarCliente = (id: string, nombre: string) => {
     setConfirmDialog({
       isOpen: true,
-      message: t(`¿Estás seguro de eliminar al visitante "${nombre}"? Sus calificaciones y premios también se borrarán.`, `Are you sure you want to delete the visitor "${nombre}"? Their ratings and awards will also be deleted.`),
+      message: t(
+        `¿Estás seguro de eliminar al visitante "${nombre}"? Sus calificaciones y premios también se borrarán.`, 
+        `Are you sure you want to delete the visitor "${nombre}"? Their ratings and awards will also be deleted.`
+      ),
       onConfirm: async () => {
         setConfirmDialog({ ...confirmDialog, isOpen: false });
         setLoading(true);
@@ -197,7 +210,10 @@ export default function MasterDashboard() {
     if (clientesList.length === 0) return;
     setConfirmDialog({
       isOpen: true,
-      message: t(`¡ATENCIÓN! Vas a eliminar a TODOS los visitantes registrados (${clientesList.length}) junto con sus calificaciones y premios. Esta acción es destructiva y NO se puede deshacer.`, `WARNING! You are about to delete ALL registered visitors (${clientesList.length}) along with their ratings and awards. This action is destructive and CANNOT be undone.`),
+      message: t(
+        `¡ATENCIÓN! Vas a eliminar a TODOS los visitantes registrados (${clientesList.length}) junto con sus calificaciones y premios. Esta acción es destructiva y NO se puede deshacer.`, 
+        `WARNING! You are about to delete ALL registered visitors (${clientesList.length}) along with their ratings and awards. This action is destructive and CANNOT be undone.`
+      ),
       onConfirm: async () => {
         setConfirmDialog({ ...confirmDialog, isOpen: false });
         setLoading(true);
@@ -214,7 +230,10 @@ export default function MasterDashboard() {
     e.stopPropagation();
     setConfirmDialog({
       isOpen: true,
-      message: t(`¿Estás seguro de borrar a "${nombre}" del historial de ganadores? Esto NO eliminará al visitante, solo su registro de premio.`, `Are you sure you want to delete "${nombre}" from the winner history? This will NOT delete the visitor, only their award record.`),
+      message: t(
+        `¿Estás seguro de borrar a "${nombre}" del historial de ganadores? Esto NO eliminará al visitante, solo su registro de premio.`, 
+        `Are you sure you want to delete "${nombre}" from the winner history? This will NOT delete the visitor, only their award record.`
+      ),
       onConfirm: async () => {
         setConfirmDialog({ ...confirmDialog, isOpen: false });
         setLoading(true);
@@ -250,17 +269,29 @@ export default function MasterDashboard() {
   const imprimirQRDesdeMaster = async (s: any) => {
     const url = `${window.location.origin}/calificar/${s.id}`;
     const qrCode = new QRCodeStyling({
-      width: 1000, height: 1000, data: url, image: s.logo || undefined,
-      dotsOptions: { type: "dots", gradient: { type: "linear", rotation: Math.PI / 4, colorStops: [{ offset: 0, color: "#c81474" }, { offset: 1, color: "#5b21b6" }] } },
+      width: 1000, 
+      height: 1000, 
+      data: url, 
+      image: s.logo || undefined,
+      dotsOptions: { 
+        type: "dots", 
+        gradient: { 
+          type: "linear", 
+          rotation: Math.PI / 4, 
+          colorStops: [{ offset: 0, color: "#c81474" }, { offset: 1, color: "#5b21b6" }] 
+        } 
+      },
       cornersSquareOptions: { type: "dot", color: "#c81474" },
       cornersDotOptions: { type: "dot", color: "#c81474" },
       backgroundOptions: { color: "#ffffff" },
       imageOptions: { crossOrigin: "anonymous", margin: 0, imageSize: 0.3, hideBackgroundDots: false }
     });
+    
     const blob = await qrCode.getRawData("png");
     if (!blob) return;
     const imgUrl = URL.createObjectURL(blob as Blob);
     const printWindow = window.open('', '', 'width=1000,height=1000');
+    
     if (printWindow) {
       printWindow.document.write(`
         <!DOCTYPE html>
@@ -269,7 +300,11 @@ export default function MasterDashboard() {
             <title>${t("Imprimir QR", "Print QR")} - ${s.nombreStand}</title>
             <style>
               @page { size: auto; margin: 0mm; } 
-              body { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; font-family: Arial, sans-serif; text-align: center; background: white; }
+              body { 
+                display: flex; flex-direction: column; align-items: center; justify-content: center; 
+                height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; 
+                font-family: Arial, sans-serif; text-align: center; background: white; 
+              }
               .qr-container { padding: 30px; border: 6px solid #c81474; border-radius: 30px; margin: 30px 0; background: white; }
               img { width: 500px; height: 500px; object-fit: contain; }
               h1 { font-size: 50px; margin: 0; color: #000; font-weight: 900; text-transform: uppercase; }
@@ -293,8 +328,11 @@ export default function MasterDashboard() {
     setTipoDetalle(tipo);
     setEntidadSeleccionada(entidad);
     
-    if (tipo === "STAND") setHistorialDetallado(await obtenerDetallesStandMaster(entidad.id));
-    else if (tipo === "CLIENTE") setHistorialDetallado(await obtenerDetallesClienteMaster(entidad.id));
+    if (tipo === "STAND") {
+      setHistorialDetallado(await obtenerDetallesStandMaster(entidad.id));
+    } else if (tipo === "CLIENTE") {
+      setHistorialDetallado(await obtenerDetallesClienteMaster(entidad.id));
+    }
     
     setDetallesAbiertos(true);
     setLoading(false);
@@ -339,6 +377,7 @@ export default function MasterDashboard() {
     if (!file) return;
     setLoading(true);
     const reader = new FileReader();
+    
     reader.onload = async (event) => {
       try {
         const sheet = XLSX.read(event.target?.result, { type: "binary" }).Sheets[XLSX.read(event.target?.result, { type: "binary" }).SheetNames[0]];
@@ -346,11 +385,16 @@ export default function MasterDashboard() {
         const safeData = JSON.parse(JSON.stringify(parsedData)); 
         const standsArray = safeData.map((row: any) => ({ nombre: String(Object.values(row)[0]) }));
         const res = await cargarStandsMasivos(standsArray);
+        
         setMensaje(res.message);
         setTimeout(() => setMensaje(""), 3000);
         if (res.success) cargarListaStands();
-      } catch (error) { setMensaje(t("Error procesando Excel.", "Error processing Excel.")); }
-      finally { setLoading(false); if (fileInputRefStands.current) fileInputRefStands.current.value = ""; }
+      } catch (error) { 
+        setMensaje(t("Error procesando Excel.", "Error processing Excel.")); 
+      } finally { 
+        setLoading(false); 
+        if (fileInputRefStands.current) fileInputRefStands.current.value = ""; 
+      }
     };
     reader.readAsBinaryString(file);
   };
@@ -360,23 +404,33 @@ export default function MasterDashboard() {
     if (!file) return;
     setLoading(true);
     const reader = new FileReader();
+    
     reader.onload = async (event) => {
       try {
         const sheet = XLSX.read(event.target?.result, { type: "binary" }).Sheets[XLSX.read(event.target?.result, { type: "binary" }).SheetNames[0]];
         const parsedData = XLSX.utils.sheet_to_json(sheet);
         const safeData = JSON.parse(JSON.stringify(parsedData)); 
         const res = await cargarClientesMasivos(safeData);
+        
         setMensaje(res.message);
         setTimeout(() => setMensaje(""), 3000);
         if (res.success) cargarListaClientes();
-      } catch (error) { setMensaje(t("Error procesando Excel.", "Error processing Excel.")); }
-      finally { setLoading(false); if (fileInputRefClientes.current) fileInputRefClientes.current.value = ""; }
+      } catch (error) { 
+        setMensaje(t("Error procesando Excel.", "Error processing Excel.")); 
+      } finally { 
+        setLoading(false); 
+        if (fileInputRefClientes.current) fileInputRefClientes.current.value = ""; 
+      }
     };
     reader.readAsBinaryString(file);
   };
 
   const exportarStandsExcel = () => {
-    const data = standsList.map((s: any) => ({ [t("Nombre del Stand", "Stand Name")]: s.nombreStand, [t("Usuario", "User")]: s.username, [t("Contraseña", "Password")]: s.password }));
+    const data = standsList.map((s: any) => ({ 
+      [t("Nombre del Stand", "Stand Name")]: s.nombreStand, 
+      [t("Usuario", "User")]: s.username, 
+      [t("Contraseña", "Password")]: s.password 
+    }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, t("Stands", "Stands"));
@@ -385,8 +439,13 @@ export default function MasterDashboard() {
 
   const exportarClientesExcel = () => {
     const data = clientesList.map((c: any) => ({ 
-      [t("Nombres", "First Name")]: c.nombres, [t("Apellidos", "Last Name")]: c.apellidos, [t("Documento", "Document")]: c.username, 
-      [t("Institución", "Institution")]: c.institucion, [t("Cargo", "Position")]: c.cargo, [t("Teléfono", "Phone")]: c.telefono, [t("Correo", "Email")]: c.correo,
+      [t("Nombres", "First Name")]: c.nombres, 
+      [t("Apellidos", "Last Name")]: c.apellidos, 
+      [t("Documento", "Document")]: c.username, 
+      [t("Institución", "Institution")]: c.institucion, 
+      [t("Cargo", "Position")]: c.cargo, 
+      [t("Teléfono", "Phone")]: c.telefono, 
+      [t("Correo", "Email")]: c.correo,
       [t("Stands Calificados", "Rated Stands")]: c._count.calificacionesDadas
     }));
     const ws = XLSX.utils.json_to_sheet(data);
@@ -395,6 +454,7 @@ export default function MasterDashboard() {
     XLSX.writeFile(wb, "Reporte_Visitantes.xlsx");
   };
 
+  // DATOS Y FILTROS
   const filteredStands = standsList.filter(s => 
     s.nombreStand?.toLowerCase().includes(searchStand.toLowerCase()) || 
     s.username?.toLowerCase().includes(searchStand.toLowerCase())
@@ -411,6 +471,24 @@ export default function MasterDashboard() {
   const paginatedClientes = filteredClientes.slice((pageClientes - 1) * limitClientes, pageClientes * limitClientes);
   const totalPagesClientes = Math.ceil(filteredClientes.length / limitClientes);
 
+  // GRÁFICAS DE MASTER (Instituciones y Visitantes Top)
+  const institucionData = clientesList.reduce((acc: any, c: any) => { 
+    const inst = c.institucion || t("Otra", "Other"); 
+    acc[inst] = (acc[inst] || 0) + 1; 
+    return acc; 
+  }, {});
+  
+  const pieData = Object.keys(institucionData)
+    .map(k => ({ name: k, value: institucionData[k] }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 5);
+    
+  const COLORS = ['#c81474', '#9d105b', '#7a0c47', '#e83b96', '#f472b6'];
+
+  const topVisitantes = [...clientesList]
+    .sort((a, b) => (b._count?.calificacionesDadas || 0) - (a._count?.calificacionesDadas || 0))
+    .slice(0, 3);
+
   const tabs = [
     { id: "stands", label: t("Stands", "Stands"), icon: Store },
     { id: "clientes", label: t("Visitantes", "Visitors"), icon: Users },
@@ -422,15 +500,12 @@ export default function MasterDashboard() {
   return (
     <div className={`h-screen flex overflow-hidden transition-colors duration-300 ${isDark ? "bg-neutral-950 text-white" : "bg-gray-50 text-gray-900"}`}>
       
-      {/* ==================================================== */}
-      {/* MENÚ LATERAL (AUTOCOLLAPSABLE EN DESKTOP / ARROW EN MÓVIL) */}
-      {/* ==================================================== */}
+      {/* MENÚ LATERAL */}
       <aside 
         className={`fixed md:relative z-50 h-full flex flex-col border-r shadow-2xl transition-all duration-300 ease-in-out group 
         ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-gray-200"} 
         ${sidebarOpen ? "translate-x-0 w-64" : "-translate-x-full md:translate-x-0 md:w-20 md:hover:w-64"}`}
       >
-        {/* Flechita para abrir/cerrar en Móvil */}
         <button 
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className={`md:hidden absolute top-6 -right-12 w-12 h-14 flex items-center justify-center rounded-r-xl shadow-lg border-y border-r transition-colors z-50 ${isDark ? "bg-neutral-900 border-neutral-800 text-[#c81474]" : "bg-white border-gray-200 text-[#c81474]"}`}
@@ -438,7 +513,6 @@ export default function MasterDashboard() {
           {sidebarOpen ? <ChevronLeft className="w-6 h-6"/> : <ChevronRight className="w-6 h-6"/>}
         </button>
 
-        {/* LOGO EN VEZ DE TEXTO */}
         <div className="h-24 flex items-center justify-center shrink-0 border-b border-transparent overflow-hidden px-4">
           <img 
             src="/logo.png" 
@@ -447,7 +521,6 @@ export default function MasterDashboard() {
           />
         </div>
 
-        {/* NAVEGACIÓN */}
         <nav className="flex-1 space-y-2 px-3 py-6 overflow-y-auto overflow-x-hidden" style={{ scrollbarWidth: "none" }}>
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -470,12 +543,11 @@ export default function MasterDashboard() {
           })}
         </nav>
 
-        {/* BOTÓN SALIR */}
         <div className="p-3 shrink-0 mb-4">
           <button 
             onClick={() => signOut({ callbackUrl: "/login" })} 
             className={`relative w-full flex items-center p-3 rounded-xl transition-colors font-bold overflow-hidden
-            ${isDark ? "hover:bg-red-500/10 text-red-500" : "hover:bg-red-50 text-red-600"}`}
+            ${isDark ? "hover:bg-[#c81474]/10 text-[#c81474]" : "hover:bg-pink-50 text-[#c81474]"}`}
           >
             <div className="w-10 flex justify-center shrink-0">
               <LogOut className="w-6 h-6" />
@@ -487,35 +559,48 @@ export default function MasterDashboard() {
         </div>
       </aside>
 
-      {/* ==================================================== */}
-      {/* CONTENIDO PRINCIPAL Y MARCA DE AGUA */}
-      {/* ==================================================== */}
+      {/* CONTENIDO PRINCIPAL */}
       <main className="flex-1 h-full overflow-y-auto relative flex flex-col p-6 md:p-10">
         
-        {/* LOGO DE FONDO (MARCA DE AGUA GLOBAL) */}
-        <div className={`absolute inset-0 z-0 flex justify-center items-center pointer-events-none ${isDark ? "opacity-10" : "opacity-[0.03]"}`}>
-          <img src="/logo.png" alt="WEEF Background" className="w-[80%] h-[80%] object-contain" />
+        {/* MARCA DE AGUA */}
+        <div className={`absolute inset-0 z-0 flex justify-center items-center pointer-events-none ${isDark ? "opacity-10" : "opacity-[0.05]"}`}>
+          <img 
+            src="/logo.png" 
+            alt="WEEF Background" 
+            className="w-[80%] h-[80%] object-contain" 
+          />
         </div>
 
-        {/* CABECERA TOP-RIGHT (Botones globales) */}
+        {/* CABECERA */}
         <div className="flex justify-between items-start mb-8 relative z-10 w-full min-h-12">
-          {/* Mensajes de Alerta a la izquierda */}
           <div className="flex-1 max-w-md">
             <AnimatePresence>
               {mensaje && (
-                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className={`p-3 rounded-xl font-bold text-center shadow-lg ${isDark ? "bg-neutral-900 border border-[#c81474] text-[#c81474]" : "bg-green-50 border border-green-200 text-green-700"}`}>
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }} 
+                  animate={{ opacity: 1, y: 0 }} 
+                  exit={{ opacity: 0, y: -10 }} 
+                  className={`p-3 rounded-xl font-bold text-center shadow-lg ${isDark ? "bg-[#c81474]/10 border border-[#c81474]/30 text-[#c81474]" : "bg-pink-50 border border-pink-200 text-[#c81474]"}`}
+                >
                   {mensaje}
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
-
-          {/* Botones Tema/Idioma a la derecha */}
+          
           <div className="flex items-center space-x-3 shrink-0 ml-4">
-            <button onClick={toggleLanguage} className={`p-2.5 rounded-full transition-colors shadow-sm border ${isDark ? "bg-neutral-900 border-[#c81474]/50 text-[#c81474] hover:bg-neutral-800" : "bg-white border-[#c81474]/30 text-[#c81474] hover:bg-gray-100"}`} title={t("Cambiar Idioma", "Change Language")}>
+            <button 
+              onClick={toggleLanguage} 
+              className={`p-2.5 rounded-full transition-colors shadow-sm border ${isDark ? "bg-neutral-900 border-[#c81474]/50 text-[#c81474] hover:bg-neutral-800" : "bg-white border-[#c81474]/30 text-[#c81474] hover:bg-gray-100"}`} 
+              title={t("Cambiar Idioma", "Change Language")}
+            >
               <Globe className="w-5 h-5" />
             </button>
-            <button onClick={toggleTheme} className={`p-2.5 rounded-full transition-colors shadow-sm border ${isDark ? "bg-neutral-900 border-[#c81474]/50 text-yellow-400 hover:bg-neutral-800" : "bg-white border-[#c81474]/30 text-yellow-500 hover:bg-gray-100"}`} title={t("Cambiar Tema", "Toggle Theme")}>
+            <button 
+              onClick={toggleTheme} 
+              className={`p-2.5 rounded-full transition-colors shadow-sm border ${isDark ? "bg-neutral-900 border-[#c81474]/50 text-[#c81474] hover:bg-neutral-800" : "bg-white border-[#c81474]/30 text-[#c81474] hover:bg-gray-100"}`} 
+              title={t("Cambiar Tema", "Toggle Theme")}
+            >
               {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
           </div>
@@ -528,15 +613,26 @@ export default function MasterDashboard() {
               <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
                 <div>
                   <h1 className="text-4xl font-black uppercase">{t("Gestión de Stands", "Stand Management")}</h1>
-                  <p className={`font-bold mt-1 ${isDark ? "text-neutral-400" : "text-gray-500"}`}>{t("Total registrados:", "Total registered:")} {standsList.length}</p>
+                  <p className={`font-bold mt-1 ${isDark ? "text-neutral-400" : "text-gray-500"}`}>
+                    {t("Total registrados:", "Total registered:")} {standsList.length}
+                  </p>
                 </div>
                 <div className="flex space-x-3 flex-wrap gap-y-2">
-                  <button onClick={() => setIsModalStandOpen(true)} className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-bold transition-all border ${isDark ? "bg-neutral-800 text-white border-neutral-700 hover:bg-neutral-700" : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"}`}>
-                    <Plus className="w-5 h-5" /><span>{t("Manual", "Manual")}</span>
+                  <button 
+                    onClick={() => setIsModalStandOpen(true)} 
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-bold transition-all border ${isDark ? "bg-neutral-800 text-white border-neutral-700 hover:bg-neutral-700" : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"}`}
+                  >
+                    <Plus className="w-5 h-5" />
+                    <span>{t("Manual", "Manual")}</span>
                   </button>
                   <input type="file" accept=".xlsx, .xls" className="hidden" ref={fileInputRefStands} onChange={handleFileUploadStands} />
-                  <button onClick={() => fileInputRefStands.current?.click()} disabled={loading} className="flex items-center space-x-2 bg-[#c81474] hover:bg-[#a61060] text-white px-4 py-2 rounded-xl font-bold transition-all shadow-md">
-                    <Upload className="w-5 h-5" /><span>{t("Excel", "Excel")}</span>
+                  <button 
+                    onClick={() => fileInputRefStands.current?.click()} 
+                    disabled={loading} 
+                    className="flex items-center space-x-2 bg-[#c81474] hover:bg-[#a61060] text-white px-4 py-2 rounded-xl font-bold transition-all shadow-md"
+                  >
+                    <Upload className="w-5 h-5" />
+                    <span>{t("Excel", "Excel")}</span>
                   </button>
                 </div>
               </div>
@@ -545,24 +641,35 @@ export default function MasterDashboard() {
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                   <Search className={`h-5 w-5 ${isDark ? "text-neutral-500" : "text-gray-400"}`} />
                 </div>
-                <input
-                  type="text"
-                  placeholder={t("Buscar stand por nombre o usuario...", "Search stand by name or user...")}
-                  value={searchStand}
-                  onChange={(e) => { setSearchStand(e.target.value); setPageStands(1); }}
-                  className={`w-full pl-12 pr-4 py-3 rounded-xl focus:outline-none focus:border-[#c81474] transition-colors shadow-inner ${isDark ? "bg-neutral-900 border border-neutral-700 text-white" : "bg-white/80 backdrop-blur-md border border-gray-300 text-gray-900"}`}
+                <input 
+                  type="text" 
+                  placeholder={t("Buscar stand...", "Search stand...")} 
+                  value={searchStand} 
+                  onChange={(e) => { setSearchStand(e.target.value); setPageStands(1); }} 
+                  className={`w-full pl-12 pr-4 py-3 rounded-xl focus:outline-none focus:border-[#c81474] transition-colors shadow-inner ${isDark ? "bg-neutral-900 border border-neutral-700 text-white" : "bg-white/80 backdrop-blur-md border border-gray-300 text-gray-900"}`} 
                 />
               </div>
 
               <div className={`flex justify-between items-center mb-4 text-sm ${isDark ? "text-neutral-400" : "text-gray-600"}`}>
                 <div className="flex items-center space-x-2">
                   <span>{t("Mostrar:", "Show:")}</span>
-                  <select value={limitStands} onChange={(e) => {setLimitStands(Number(e.target.value)); setPageStands(1);}} className={`rounded-lg p-1 outline-none border ${isDark ? "bg-neutral-900 border-neutral-700 text-white" : "bg-white border-gray-300 text-gray-700"}`}>
-                    <option value={10}>10</option><option value={20}>20</option><option value={50}>50</option><option value={100}>100</option>
+                  <select 
+                    value={limitStands} 
+                    onChange={(e) => {setLimitStands(Number(e.target.value)); setPageStands(1);}} 
+                    className={`rounded-lg p-1 outline-none border ${isDark ? "bg-neutral-900 border-neutral-700 text-white" : "bg-white border-gray-300 text-gray-700"}`}
+                  >
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
                   </select>
                 </div>
-                <button onClick={exportarStandsExcel} className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-bold transition-all border ${isDark ? "bg-green-600/20 text-green-500 border-green-500/50 hover:bg-green-600/30" : "bg-green-50 text-green-700 border-green-200 hover:bg-green-100"}`}>
-                  <Download className="w-4 h-4" /><span>{t("Exportar", "Export")}</span>
+                <button 
+                  onClick={exportarStandsExcel} 
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-bold transition-all border ${isDark ? "bg-[#c81474]/20 text-[#c81474] border-[#c81474]/50 hover:bg-[#c81474]/30" : "bg-pink-50 text-[#c81474] border-pink-200 hover:bg-pink-100"}`}
+                >
+                  <Download className="w-4 h-4" />
+                  <span>{t("Exportar", "Export")}</span>
                 </button>
               </div>
 
@@ -578,24 +685,43 @@ export default function MasterDashboard() {
                   </thead>
                   <tbody>
                     {paginatedStands.length === 0 ? (
-                      <tr><td colSpan={4} className={`p-8 text-center ${isDark ? "text-neutral-500" : "text-gray-500"}`}>{t("No se encontraron stands con esos datos.", "No stands found with that data.")}</td></tr>
+                      <tr>
+                        <td colSpan={4} className={`p-8 text-center ${isDark ? "text-neutral-500" : "text-gray-500"}`}>
+                          {t("No se encontraron stands.", "No stands found.")}
+                        </td>
+                      </tr>
                     ) : (
                       paginatedStands.map((s: any) => (
                         <tr key={s.id} className={`border-b transition-colors ${isDark ? "border-neutral-800/50 hover:bg-neutral-800/50" : "border-gray-100 hover:bg-gray-50"}`}>
                           <td className="p-4 font-medium flex items-center space-x-3">
-                            {s.logo ? <img src={s.logo} alt="logo" className={`w-8 h-8 rounded-full object-cover border ${isDark ? "border-neutral-700" : "border-gray-300"}`} /> : <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs border ${isDark ? "bg-neutral-800 border-neutral-700 text-neutral-500" : "bg-gray-100 border-gray-300 text-gray-500"}`}>S</div>}
+                            {s.logo ? (
+                              <img src={s.logo} alt="logo" className={`w-8 h-8 rounded-full object-cover border ${isDark ? "border-neutral-700" : "border-gray-300"}`} />
+                            ) : (
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs border ${isDark ? "bg-neutral-800 border-neutral-700 text-neutral-500" : "bg-gray-100 border-gray-300 text-gray-500"}`}>
+                                S
+                              </div>
+                            )}
                             <span>{s.nombreStand}</span>
                           </td>
                           <td className={`p-4 font-mono font-bold ${isDark ? "text-[#c81474]" : "text-[#c81474]"}`}>{s.username}</td>
                           <td className={`p-4 font-mono ${isDark ? "text-purple-400" : "text-purple-600"}`}>{s.password}</td>
                           <td className="p-4">
                             <div className="flex justify-end space-x-2">
-                              <button onClick={() => copiarDatosLogin(s)} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-white" : "text-gray-500 bg-gray-100 hover:text-gray-900"}`} title={t("Copiar Datos Login", "Copy Login Data")}><Copy className="w-4 h-4" /></button>
-                              <a href={`/calificar/${s.id}`} target="_blank" rel="noopener noreferrer" className={`p-2 rounded-lg transition-colors flex items-center justify-center ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-green-400" : "text-gray-500 bg-gray-100 hover:text-green-600"}`} title={t("Link Calificar", "Rating Link")}><ExternalLink className="w-4 h-4" /></a>
-                              <button onClick={() => imprimirQRDesdeMaster(s)} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-[#c81474]" : "text-gray-500 bg-gray-100 hover:text-[#c81474]"}`} title={t("Imprimir QR", "Print QR")}><Printer className="w-4 h-4" /></button>
-                              <button onClick={() => abrirDetalles(s, "STAND")} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-[#c81474]" : "text-gray-500 bg-gray-100 hover:text-[#c81474]"}`} title={t("Ver Comentarios", "View Comments")}><Eye className="w-4 h-4" /></button>
-                              <button onClick={() => { setEditingStand(s); setIsEditStandModalOpen(true); }} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-blue-400" : "text-gray-500 bg-gray-100 hover:text-blue-600"}`} title={t("Editar", "Edit")}><Edit className="w-4 h-4" /></button>
-                              <button onClick={() => handleEliminarStand(s.id, s.nombreStand)} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-red-400" : "text-gray-500 bg-gray-100 hover:text-red-600"}`} title={t("Eliminar", "Delete")}><Trash2 className="w-4 h-4" /></button>
+                              <button onClick={() => copiarDatosLogin(s)} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-white" : "text-gray-500 bg-gray-100 hover:text-gray-900"}`}>
+                                <Copy className="w-4 h-4" />
+                              </button>
+                              <button onClick={() => imprimirQRDesdeMaster(s)} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-[#c81474]" : "text-gray-500 bg-gray-100 hover:text-[#c81474]"}`}>
+                                <Printer className="w-4 h-4" />
+                              </button>
+                              <button onClick={() => abrirDetalles(s, "STAND")} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-[#c81474]" : "text-gray-500 bg-gray-100 hover:text-[#c81474]"}`}>
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              <button onClick={() => { setEditingStand(s); setIsEditStandModalOpen(true); }} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-blue-400" : "text-gray-500 bg-gray-100 hover:text-blue-600"}`}>
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button onClick={() => handleEliminarStand(s.id, s.nombreStand)} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-[#c81474]" : "text-gray-500 bg-gray-100 hover:text-[#c81474]"}`}>
+                                <Trash2 className="w-4 h-4" />
+                              </button>
                             </div>
                           </td>
                         </tr>
@@ -604,30 +730,119 @@ export default function MasterDashboard() {
                   </tbody>
                 </table>
               </div>
+              
               <div className="flex justify-between items-center mt-4 pb-10">
-                <button disabled={pageStands === 1} onClick={() => setPageStands(pageStands - 1)} className={`px-4 py-2 border rounded-lg text-sm font-bold disabled:opacity-50 transition-colors ${isDark ? "bg-neutral-900 border-neutral-700 text-white hover:bg-neutral-800" : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"}`}>{t("Anterior", "Previous")}</button>
-                <span className={`text-sm ${isDark ? "text-neutral-400" : "text-gray-500"}`}>{t("Página", "Page")} {pageStands} {t("de", "of")} {totalPagesStands || 1}</span>
-                <button disabled={pageStands === totalPagesStands || totalPagesStands === 0} onClick={() => setPageStands(pageStands + 1)} className={`px-4 py-2 border rounded-lg text-sm font-bold disabled:opacity-50 transition-colors ${isDark ? "bg-neutral-900 border-neutral-700 text-white hover:bg-neutral-800" : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"}`}>{t("Siguiente", "Next")}</button>
+                <button 
+                  disabled={pageStands === 1} 
+                  onClick={() => setPageStands(pageStands - 1)} 
+                  className={`px-4 py-2 border rounded-lg text-sm font-bold disabled:opacity-50 transition-colors ${isDark ? "bg-neutral-900 border-neutral-700 text-white hover:bg-neutral-800" : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"}`}
+                >
+                  {t("Anterior", "Previous")}
+                </button>
+                <span className={`text-sm ${isDark ? "text-neutral-400" : "text-gray-500"}`}>
+                  {t("Página", "Page")} {pageStands} {t("de", "of")} {totalPagesStands || 1}
+                </span>
+                <button 
+                  disabled={pageStands === totalPagesStands || totalPagesStands === 0} 
+                  onClick={() => setPageStands(pageStands + 1)} 
+                  className={`px-4 py-2 border rounded-lg text-sm font-bold disabled:opacity-50 transition-colors ${isDark ? "bg-neutral-900 border-neutral-700 text-white hover:bg-neutral-800" : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"}`}
+                >
+                  {t("Siguiente", "Next")}
+                </button>
               </div>
             </motion.div>
           )}
 
-          {/* CLIENTES */}
+          {/* VISITANTES */}
           {activeTab === "clientes" && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
               <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
                 <div>
                   <h1 className="text-4xl font-black uppercase">{t("Gestión de Visitantes", "Visitor Management")}</h1>
-                  <p className={`font-bold mt-1 ${isDark ? "text-neutral-400" : "text-gray-500"}`}>{t("Total registrados:", "Total registered:")} {clientesList.length}</p>
+                  <p className={`font-bold mt-1 ${isDark ? "text-neutral-400" : "text-gray-500"}`}>
+                    {t("Total registrados:", "Total registered:")} {clientesList.length}
+                  </p>
                 </div>
                 <div className="flex space-x-3 flex-wrap gap-y-2">
                   <input type="file" accept=".xlsx, .xls" className="hidden" ref={fileInputRefClientes} onChange={handleFileUploadClientes} />
-                  <button onClick={() => fileInputRefClientes.current?.click()} disabled={loading} className="flex items-center space-x-2 bg-[#c81474] hover:bg-[#a61060] text-white px-4 py-2 rounded-xl font-bold transition-all shadow-md">
-                    <Upload className="w-5 h-5" /><span>{t("Excel Visitantes", "Visitor Excel")}</span>
+                  <button 
+                    onClick={() => fileInputRefClientes.current?.click()} 
+                    disabled={loading} 
+                    className="flex items-center space-x-2 bg-[#c81474] hover:bg-[#a61060] text-white px-4 py-2 rounded-xl font-bold transition-all shadow-md"
+                  >
+                    <Upload className="w-5 h-5" />
+                    <span>{t("Excel Visitantes", "Visitor Excel")}</span>
                   </button>
-                  <button onClick={handleEliminarTodosClientes} disabled={loading || clientesList.length === 0} className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-bold transition-all border disabled:opacity-50 ${isDark ? "bg-red-600/20 text-red-500 border-red-500/50 hover:bg-red-600/30" : "bg-red-50 text-red-600 border-red-200 hover:bg-red-100"}`}>
-                    <Trash2 className="w-5 h-5" /><span>{t("Eliminar Todos", "Delete All")}</span>
+                  <button 
+                    onClick={handleEliminarTodosClientes} 
+                    disabled={loading || clientesList.length === 0} 
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-bold transition-all border disabled:opacity-50 ${isDark ? "bg-red-600/20 text-red-500 border-red-500/50 hover:bg-red-600/30" : "bg-red-50 text-red-600 border-red-200 hover:bg-red-100"}`}
+                  >
+                    <Trash2 className="w-5 h-5" />
+                    <span>{t("Eliminar Todos", "Delete All")}</span>
                   </button>
+                </div>
+              </div>
+
+              {/* GRÁFICAS DEL DASHBOARD DE VISITANTES */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div className={`p-6 border rounded-3xl shadow-xl flex flex-col ${isDark ? "bg-neutral-900/60 backdrop-blur-xl border-neutral-800" : "bg-white border-gray-200"}`}>
+                  <h3 className={`text-sm font-bold uppercase tracking-widest mb-4 flex items-center ${isDark ? "text-neutral-400" : "text-gray-500"}`}>
+                    <PieChartIcon className="w-4 h-4 mr-2" /> 
+                    {t("Instituciones Top", "Top Institutions")}
+                  </h3>
+                  <div className="flex-1 w-full min-h-50">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie 
+                          data={pieData} 
+                          cx="50%" 
+                          cy="50%" 
+                          innerRadius={50} 
+                          outerRadius={80} 
+                          paddingAngle={2} 
+                          dataKey="value"
+                        >
+                          {pieData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip contentStyle={{ backgroundColor: isDark ? '#171717' : '#ffffff', border: 'none', borderRadius: '12px', color: '#c81474', fontWeight: 'bold' }} />
+                        <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                <div className={`p-6 border rounded-3xl shadow-xl flex flex-col ${isDark ? "bg-neutral-900/60 backdrop-blur-xl border-neutral-800" : "bg-white border-gray-200"}`}>
+                  <h3 className={`text-sm font-bold uppercase tracking-widest mb-4 flex items-center ${isDark ? "text-neutral-400" : "text-gray-500"}`}>
+                    <BarChart3 className="w-4 h-4 mr-2" /> 
+                    {t("Top Visitantes Activos", "Top Active Visitors")}
+                  </h3>
+                  <div className="space-y-4 flex-1 flex flex-col justify-center">
+                    {topVisitantes.length === 0 ? (
+                      <p className="text-center text-sm text-neutral-500">{t("Sin datos aún.", "No data yet.")}</p>
+                    ) : (
+                      topVisitantes.map((v, i) => (
+                        <div key={i} className={`flex justify-between items-center p-3 rounded-xl border ${isDark ? "bg-neutral-950/50 border-neutral-800" : "bg-gray-50 border-gray-100"}`}>
+                          <div className="flex items-center space-x-3">
+                            <div className="bg-[#c81474] text-white w-8 h-8 rounded-full flex items-center justify-center font-black">
+                              {i + 1}
+                            </div>
+                            <div>
+                              <p className={`font-bold ${isDark ? "text-white" : "text-gray-900"}`}>
+                                {v.nombres.split(" ")[0]} {v.apellidos.split(" ")[0]}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-1 font-bold text-[#c81474]">
+                            <Star className="w-4 h-4 fill-[#c81474]" />
+                            <span>{v._count?.calificacionesDadas || 0}</span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -637,7 +852,7 @@ export default function MasterDashboard() {
                 </div>
                 <input
                   type="text"
-                  placeholder={t("Buscar visitante por nombre, documento o institución...", "Search visitor by name, document or institution...")}
+                  placeholder={t("Buscar visitante...", "Search visitor...")}
                   value={searchCliente}
                   onChange={(e) => { setSearchCliente(e.target.value); setPageClientes(1); }}
                   className={`w-full pl-12 pr-4 py-3 rounded-xl focus:outline-none focus:border-[#c81474] transition-colors shadow-inner ${isDark ? "bg-neutral-900 border border-neutral-700 text-white" : "bg-white/80 backdrop-blur-md border border-gray-300 text-gray-900"}`}
@@ -647,12 +862,23 @@ export default function MasterDashboard() {
               <div className={`flex justify-between items-center mb-4 text-sm ${isDark ? "text-neutral-400" : "text-gray-600"}`}>
                 <div className="flex items-center space-x-2">
                   <span>{t("Mostrar:", "Show:")}</span>
-                  <select value={limitClientes} onChange={(e) => {setLimitClientes(Number(e.target.value)); setPageClientes(1);}} className={`rounded-lg p-1 outline-none border ${isDark ? "bg-neutral-900 border-neutral-700 text-white" : "bg-white border-gray-300 text-gray-700"}`}>
-                    <option value={10}>10</option><option value={20}>20</option><option value={50}>50</option><option value={100}>100</option>
+                  <select 
+                    value={limitClientes} 
+                    onChange={(e) => {setLimitClientes(Number(e.target.value)); setPageClientes(1);}} 
+                    className={`rounded-lg p-1 outline-none border ${isDark ? "bg-neutral-900 border-neutral-700 text-white" : "bg-white border-gray-300 text-gray-700"}`}
+                  >
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
                   </select>
                 </div>
-                <button onClick={exportarClientesExcel} className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-bold transition-all border ${isDark ? "bg-green-600/20 text-green-500 border-green-500/50 hover:bg-green-600/30" : "bg-green-50 text-green-700 border-green-200 hover:bg-green-100"}`}>
-                  <Download className="w-4 h-4" /><span>{t("Exportar", "Export")}</span>
+                <button 
+                  onClick={exportarClientesExcel} 
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-bold transition-all border ${isDark ? "bg-[#c81474]/20 text-[#c81474] border-[#c81474]/50 hover:bg-[#c81474]/30" : "bg-pink-50 text-[#c81474] border-pink-200 hover:bg-pink-100"}`}
+                >
+                  <Download className="w-4 h-4" />
+                  <span>{t("Exportar", "Export")}</span>
                 </button>
               </div>
 
@@ -660,7 +886,7 @@ export default function MasterDashboard() {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className={`border-b ${isDark ? "bg-black/50 border-neutral-800 text-neutral-300" : "bg-gray-50 border-gray-200 text-gray-600"}`}>
-                      <th className="p-4 font-bold">{t("Nombre Completo", "Full Name")}</th>
+                      <th className="p-4 font-bold">{t("Nombre", "Name")}</th>
                       <th className="p-4 font-bold">{t("Documento", "Document")}</th>
                       <th className="p-4 font-bold">{t("Institución", "Institution")}</th>
                       <th className="p-4 font-bold">{t("Calif.", "Ratings")}</th>
@@ -669,23 +895,40 @@ export default function MasterDashboard() {
                   </thead>
                   <tbody>
                     {paginatedClientes.length === 0 ? (
-                      <tr><td colSpan={5} className={`p-8 text-center ${isDark ? "text-neutral-500" : "text-gray-500"}`}>{t("No se encontraron visitantes con esos datos.", "No visitors found with that data.")}</td></tr>
+                      <tr>
+                        <td colSpan={5} className={`p-8 text-center ${isDark ? "text-neutral-500" : "text-gray-500"}`}>
+                          {t("No se encontraron visitantes.", "No visitors found.")}
+                        </td>
+                      </tr>
                     ) : (
                       paginatedClientes.map((c: any) => (
                         <tr key={c.id} className={`border-b transition-colors ${isDark ? "border-neutral-800/50 hover:bg-neutral-800/50" : "border-gray-100 hover:bg-gray-50"}`}>
-                          <td className="p-4 font-bold">{c.nombres} {c.apellidos}</td>
-                          <td className={`p-4 font-mono font-bold ${isDark ? "text-[#c81474]" : "text-[#c81474]"}`}>{c.username}</td>
-                          <td className={`p-4 ${isDark ? "text-neutral-400" : "text-gray-500"}`}>{c.institucion}</td>
+                          <td className="p-4 font-bold">
+                            {c.nombres} {c.apellidos}
+                          </td>
+                          <td className={`p-4 font-mono font-bold ${isDark ? "text-[#c81474]" : "text-[#c81474]"}`}>
+                            {c.username}
+                          </td>
+                          <td className={`p-4 ${isDark ? "text-neutral-400" : "text-gray-500"}`}>
+                            {c.institucion}
+                          </td>
                           <td className="p-4">
-                            <span className="bg-yellow-500/20 border border-yellow-500/30 text-yellow-600 font-black px-3 py-1 rounded-full flex items-center w-fit space-x-1">
-                              <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" /><span>{c._count.calificacionesDadas}</span>
+                            <span className="bg-[#c81474]/10 border border-[#c81474]/30 text-[#c81474] font-black px-3 py-1 rounded-full flex items-center w-fit space-x-1">
+                              <Star className="w-3 h-3 fill-[#c81474] text-[#c81474]" />
+                              <span>{c._count.calificacionesDadas}</span>
                             </span>
                           </td>
                           <td className="p-4">
                             <div className="flex justify-end space-x-2">
-                              <button onClick={() => abrirDetalles(c, "CLIENTE")} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-[#c81474]" : "text-gray-500 bg-gray-100 hover:text-[#c81474]"}`} title={t("Ver Auditoría", "View Audit")}><Eye className="w-4 h-4" /></button>
-                              <button onClick={() => { setEditingCliente(c); setIsEditClienteModalOpen(true); }} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-blue-400" : "text-gray-500 bg-gray-100 hover:text-blue-600"}`} title={t("Editar", "Edit")}><Edit className="w-4 h-4" /></button>
-                              <button onClick={() => handleEliminarCliente(c.id, `${c.nombres} ${c.apellidos}`)} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-red-400" : "text-gray-500 bg-gray-100 hover:text-red-600"}`} title={t("Eliminar", "Delete")}><Trash2 className="w-4 h-4" /></button>
+                              <button onClick={() => abrirDetalles(c, "CLIENTE")} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-[#c81474]" : "text-gray-500 bg-gray-100 hover:text-[#c81474]"}`}>
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              <button onClick={() => { setEditingCliente(c); setIsEditClienteModalOpen(true); }} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-blue-400" : "text-gray-500 bg-gray-100 hover:text-blue-600"}`}>
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button onClick={() => handleEliminarCliente(c.id, `${c.nombres} ${c.apellidos}`)} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-[#c81474]" : "text-gray-500 bg-gray-100 hover:text-[#c81474]"}`}>
+                                <Trash2 className="w-4 h-4" />
+                              </button>
                             </div>
                           </td>
                         </tr>
@@ -695,9 +938,23 @@ export default function MasterDashboard() {
                 </table>
               </div>
               <div className="flex justify-between items-center mt-4 pb-10">
-                <button disabled={pageClientes === 1} onClick={() => setPageClientes(pageClientes - 1)} className={`px-4 py-2 border rounded-lg text-sm font-bold disabled:opacity-50 transition-colors ${isDark ? "bg-neutral-900 border-neutral-700 text-white hover:bg-neutral-800" : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"}`}>{t("Anterior", "Previous")}</button>
-                <span className={`text-sm ${isDark ? "text-neutral-400" : "text-gray-500"}`}>{t("Página", "Page")} {pageClientes} {t("de", "of")} {totalPagesClientes || 1}</span>
-                <button disabled={pageClientes === totalPagesClientes || totalPagesClientes === 0} onClick={() => setPageClientes(pageClientes + 1)} className={`px-4 py-2 border rounded-lg text-sm font-bold disabled:opacity-50 transition-colors ${isDark ? "bg-neutral-900 border-neutral-700 text-white hover:bg-neutral-800" : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"}`}>{t("Siguiente", "Next")}</button>
+                <button 
+                  disabled={pageClientes === 1} 
+                  onClick={() => setPageClientes(pageClientes - 1)} 
+                  className={`px-4 py-2 border rounded-lg text-sm font-bold disabled:opacity-50 transition-colors ${isDark ? "bg-neutral-900 border-neutral-700 text-white hover:bg-neutral-800" : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"}`}
+                >
+                  {t("Anterior", "Previous")}
+                </button>
+                <span className={`text-sm ${isDark ? "text-neutral-400" : "text-gray-500"}`}>
+                  {t("Página", "Page")} {pageClientes} {t("de", "of")} {totalPagesClientes || 1}
+                </span>
+                <button 
+                  disabled={pageClientes === totalPagesClientes || totalPagesClientes === 0} 
+                  onClick={() => setPageClientes(pageClientes + 1)} 
+                  className={`px-4 py-2 border rounded-lg text-sm font-bold disabled:opacity-50 transition-colors ${isDark ? "bg-neutral-900 border-neutral-700 text-white hover:bg-neutral-800" : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"}`}
+                >
+                  {t("Siguiente", "Next")}
+                </button>
               </div>
             </motion.div>
           )}
@@ -706,51 +963,74 @@ export default function MasterDashboard() {
           {activeTab === "sorteo" && (
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center justify-center min-h-[70vh]">
               <div className="text-center mb-6">
-                <h1 className={`text-5xl font-black text-transparent bg-clip-text uppercase tracking-widest drop-shadow-sm ${isDark ? "bg-linear-to-r from-yellow-400 to-[#c81474]" : "bg-linear-to-r from-[#c81474] to-pink-500"}`}>
+                <h1 className={`text-5xl font-black text-transparent bg-clip-text uppercase tracking-widest drop-shadow-sm ${isDark ? "bg-linear-to-r from-pink-400 to-[#c81474]" : "bg-linear-to-r from-[#c81474] to-purple-500"}`}>
                   {t("Sorteo de Reconocimientos", "Awards Draw")}
                 </h1>
                 <p className={`mt-4 text-lg ${isDark ? "text-neutral-400" : "text-gray-600"}`}>
                   {t("Participantes:", "Participants:")} <span className={`font-black text-2xl ml-2 ${isDark ? "text-white" : "text-gray-900"}`}>{participantes.length}</span>
                 </p>
-                <p className={`text-sm ${isDark ? "text-[#c81474]/70" : "text-gray-500"}`}>{t("(Requisito actual: Haber calificado", "(Current requirement: Rated")} {ajustes.requiredStandsForLottery} {t("stands o más)", "stands or more)")}</p>
+                <p className={`text-sm ${isDark ? "text-[#c81474]/70" : "text-[#c81474]"}`}>
+                  {t(`(Requisito actual: Haber calificado ${ajustes.requiredStandsForLottery} stands o más)`, `(Current requirement: Rated ${ajustes.requiredStandsForLottery} stands or more)`)}
+                </p>
               </div>
 
-              <button onClick={toggleFullscreen} className={`mb-6 flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors font-bold ${isDark ? "text-neutral-400 hover:text-white bg-neutral-800" : "text-gray-600 hover:text-gray-900 bg-white border border-gray-300"}`}>
-                <Maximize className="w-5 h-5" /> <span>{t("Proyectar en Pantalla Completa", "Project Full Screen")}</span>
+              <button 
+                onClick={toggleFullscreen} 
+                className={`mb-6 flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors font-bold ${isDark ? "text-neutral-400 hover:text-white bg-neutral-800" : "text-gray-600 hover:text-gray-900 bg-white border border-gray-300"}`}
+              >
+                <Maximize className="w-5 h-5" /> 
+                <span>{t("Proyectar en Pantalla Completa", "Project Full Screen")}</span>
               </button>
 
               <div id="sorteo-container" className={`relative w-full max-w-4xl min-h-112.5 py-12 px-6 border-2 shadow-2xl flex flex-col justify-center items-center overflow-hidden mb-12 rounded-[3rem] [&:fullscreen]:rounded-none [&:fullscreen]:border-none [&:fullscreen]:max-w-none [&:fullscreen]:w-screen [&:fullscreen]:h-screen [&:fullscreen]:flex [&:fullscreen]:items-center [&:fullscreen]:justify-center ${isDark ? "bg-neutral-950/90 backdrop-blur-3xl border-neutral-800 shadow-[inset_0_0_100px_rgba(0,0,0,0.8)] [&:fullscreen]:bg-neutral-950" : "bg-white/90 backdrop-blur-3xl border-gray-100 [&:fullscreen]:bg-white"}`}>
                 <div className={`absolute inset-0 bg-[conic-gradient(from_90deg,transparent,rgba(200,20,116,0.2),transparent)] ${isSpinning ? 'animate-spin' : ''} duration-3000 pointer-events-none`} />
-
+                
                 {!isSpinning && !winner && (
                   <button onClick={iniciarSorteo} disabled={participantes.length === 0} className="relative group disabled:opacity-50 disabled:cursor-not-allowed z-10">
-                    <div className={`absolute inset-0 rounded-full blur-xl group-hover:blur-2xl transition-all duration-300 animate-pulse ${isDark ? "bg-linear-to-r from-yellow-400 via-[#c81474] to-purple-600 opacity-70 group-hover:opacity-100" : "bg-linear-to-r from-pink-400 via-[#c81474] to-purple-500 opacity-50 group-hover:opacity-80"}`} />
+                    <div className={`absolute inset-0 rounded-full blur-xl group-hover:blur-2xl transition-all duration-300 animate-pulse ${isDark ? "bg-linear-to-r from-pink-400 via-[#c81474] to-purple-600 opacity-70 group-hover:opacity-100" : "bg-linear-to-r from-[#c81474] via-pink-500 to-purple-500 opacity-50 group-hover:opacity-80"}`} />
                     <div className={`relative border-4 border-[#c81474] rounded-full w-52 h-52 p-4 flex flex-col items-center justify-center transform group-hover:scale-110 transition-transform shadow-xl ${isDark ? "bg-linear-to-br from-neutral-900 to-black" : "bg-white"}`}>
                       <Play className="w-12 h-12 text-[#c81474] ml-2 mb-2 shrink-0" />
-                      <span className={`font-black text-lg uppercase tracking-wider text-center leading-tight ${isDark ? "text-white" : "text-gray-900"}`}>{t("Iniciar", "Start")}<br/>{t("Selección", "Selection")}</span>
+                      <span className={`font-black text-lg uppercase tracking-wider text-center leading-tight ${isDark ? "text-white" : "text-gray-900"}`}>
+                        {t("Iniciar", "Start")}<br/>{t("Selección", "Selection")}
+                      </span>
                     </div>
                   </button>
                 )}
 
                 {isSpinning && (
-                  <motion.div key={spinningName} initial={{ opacity: 0, scale: 0.5, y: 50 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 1.5, y: -50 }} transition={{ duration: 0.1 }} className={`text-5xl md:text-8xl font-black uppercase tracking-tighter text-center px-4 w-full z-10 ${isDark ? "text-transparent bg-clip-text bg-linear-to-b from-white to-neutral-500" : "text-gray-900"}`}>
+                  <motion.div 
+                    key={spinningName} 
+                    initial={{ opacity: 0, scale: 0.5, y: 50 }} 
+                    animate={{ opacity: 1, scale: 1, y: 0 }} 
+                    exit={{ opacity: 0, scale: 1.5, y: -50 }} 
+                    transition={{ duration: 0.1 }} 
+                    className={`text-5xl md:text-8xl font-black uppercase tracking-tighter text-center px-4 w-full z-10 ${isDark ? "text-transparent bg-clip-text bg-linear-to-b from-white to-neutral-500" : "text-gray-900"}`}
+                  >
                     {spinningName}
                   </motion.div>
                 )}
 
                 {winner && (
-                  <motion.div initial={{ scale: 0, rotate: -180 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", damping: 15 }} className="text-center z-10 w-full px-4 flex flex-col items-center">
-                    <Trophy className="w-24 h-24 text-yellow-400 mx-auto mb-6 drop-shadow-md" />
+                  <motion.div 
+                    initial={{ scale: 0, rotate: -180 }} 
+                    animate={{ scale: 1, rotate: 0 }} 
+                    transition={{ type: "spring", damping: 15 }} 
+                    className="text-center z-10 w-full px-4 flex flex-col items-center"
+                  >
+                    <Trophy className="w-24 h-24 text-[#c81474] mx-auto mb-6 drop-shadow-md" />
                     <h2 className={`text-4xl md:text-7xl font-black uppercase tracking-tighter mb-2 leading-tight ${isDark ? "text-white" : "text-gray-900"}`}>
                       {winner.nombres} {winner.apellidos}
                     </h2>
-                    <p className={`text-2xl md:text-4xl font-mono tracking-widest mb-4 ${isDark ? "text-purple-400" : "text-gray-600"}`}>
+                    <p className={`text-2xl md:text-4xl font-mono tracking-widest mb-4 ${isDark ? "text-[#c81474]" : "text-[#c81474]"}`}>
                       CC: {winner.username}
                     </p>
-                    <p className="text-xl md:text-3xl text-[#c81474] font-bold uppercase tracking-widest">
+                    <p className="text-xl md:text-3xl text-neutral-400 font-bold uppercase tracking-widest">
                       {winner.institucion || t("Sin Institución", "No Institution")}
                     </p>
-                    <button onClick={() => {setWinner(null); cargarDatosSorteo();}} className="mt-10 bg-[#c81474] text-white px-8 py-3 rounded-full font-bold hover:bg-[#a61060] transition-all shadow-lg">
+                    <button 
+                      onClick={() => {setWinner(null); cargarDatosSorteo();}} 
+                      className="mt-10 bg-[#c81474] text-white px-8 py-3 rounded-full font-bold hover:bg-[#a61060] transition-all shadow-lg"
+                    >
                       {t("Realizar otra selección", "Draw another selection")}
                     </button>
                   </motion.div>
@@ -764,28 +1044,39 @@ export default function MasterDashboard() {
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
               <div className="flex justify-between items-center mb-8">
                 <h1 className="text-4xl font-black uppercase">{t("Historial de Sorteos", "Draw History")}</h1>
-                <p className={`font-bold mt-1 ${isDark ? "text-neutral-400" : "text-gray-500"}`}>{t("Total Entregados:", "Total Awarded:")} {historialPremios.length}</p>
+                <p className={`font-bold mt-1 ${isDark ? "text-neutral-400" : "text-gray-500"}`}>
+                  {t("Total Entregados:", "Total Awarded:")} {historialPremios.length}
+                </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-10">
                 {historialPremios.length === 0 ? (
-                  <p className={`col-span-full text-center py-10 ${isDark ? "text-neutral-500" : "text-gray-400"}`}>{t("Aún no hay sorteos registrados.", "No draws registered yet.")}</p>
+                  <p className={`col-span-full text-center py-10 ${isDark ? "text-neutral-500" : "text-gray-400"}`}>
+                    {t("Aún no hay sorteos registrados.", "No draws registered yet.")}
+                  </p>
                 ) : (
                   historialPremios.map((premio: any) => (
-                    <div key={premio.id} onClick={() => abrirDetalles(premio.cliente, "GANADOR")} className={`border p-6 rounded-3xl cursor-pointer transition-all hover:border-[#c81474] hover:shadow-xl group relative overflow-hidden ${isDark ? "bg-neutral-900/80 backdrop-blur-md border-neutral-800" : "bg-white/90 backdrop-blur-md border-gray-200"}`}>
-                      
+                    <div 
+                      key={premio.id} 
+                      onClick={() => abrirDetalles(premio.cliente, "GANADOR")} 
+                      className={`border p-6 rounded-3xl cursor-pointer transition-all hover:border-[#c81474] hover:shadow-xl group relative overflow-hidden ${isDark ? "bg-neutral-900/80 backdrop-blur-md border-neutral-800" : "bg-white/90 backdrop-blur-md border-gray-200"}`}
+                    >
                       <button 
-                        onClick={(e) => handleEliminarGanador(e, premio.id, `${premio.cliente.nombres} ${premio.cliente.apellidos}`)}
-                        className={`absolute top-4 right-4 p-2 rounded-full transition-colors opacity-0 group-hover:opacity-100 z-10 ${isDark ? "bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white" : "bg-red-50 text-red-500 hover:bg-red-500 hover:text-white"}`}
+                        onClick={(e) => handleEliminarGanador(e, premio.id, `${premio.cliente.nombres} ${premio.cliente.apellidos}`)} 
+                        className={`absolute top-4 right-4 p-2 rounded-full transition-colors opacity-0 group-hover:opacity-100 z-10 ${isDark ? "bg-[#c81474]/10 text-[#c81474] hover:bg-[#c81474] hover:text-white" : "bg-pink-50 text-[#c81474] hover:bg-[#c81474] hover:text-white"}`}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
 
                       <div className="flex justify-between items-start mb-4 pr-8">
-                        <Trophy className="w-8 h-8 text-yellow-500 group-hover:scale-110 transition-transform" />
+                        <Trophy className="w-8 h-8 text-[#c81474] group-hover:scale-110 transition-transform" />
                         <div className="text-right">
-                          <p className={`text-sm font-bold ${isDark ? "text-neutral-300" : "text-gray-700"}`}>{new Date(premio.createdAt).toLocaleDateString(language === "en" ? 'en-US' : 'es-ES')}</p>
-                          <p className={`text-xs ${isDark ? "text-neutral-500" : "text-gray-500"}`}>{new Date(premio.createdAt).toLocaleTimeString(language === "en" ? 'en-US' : 'es-ES')}</p>
+                          <p className={`text-sm font-bold ${isDark ? "text-neutral-300" : "text-gray-700"}`}>
+                            {new Date(premio.createdAt).toLocaleDateString(language === "en" ? 'en-US' : 'es-ES')}
+                          </p>
+                          <p className={`text-xs ${isDark ? "text-neutral-500" : "text-gray-500"}`}>
+                            {new Date(premio.createdAt).toLocaleTimeString(language === "en" ? 'en-US' : 'es-ES')}
+                          </p>
                         </div>
                       </div>
                       <h3 className={`text-xl font-black uppercase leading-tight mb-2 truncate ${isDark ? "text-white" : "text-gray-900"}`} title={`${premio.cliente.nombres} ${premio.cliente.apellidos}`}>
@@ -812,7 +1103,9 @@ export default function MasterDashboard() {
                   <div className={`flex items-center justify-between p-4 rounded-2xl border ${isDark ? "bg-black/30 border-neutral-800" : "bg-gray-50 border-gray-200"}`}>
                     <div>
                       <h3 className="font-bold text-lg">{t("Calificación por Estrellas", "Star Rating")}</h3>
-                      <p className={`text-sm ${isDark ? "text-neutral-400" : "text-gray-500"}`}>{t("Permitir a los visitantes dar 1 a 5 estrellas.", "Allow visitors to give 1 to 5 stars.")}</p>
+                      <p className={`text-sm ${isDark ? "text-neutral-400" : "text-gray-500"}`}>
+                        {t("Permitir a los visitantes dar 1 a 5 estrellas.", "Allow visitors to give 1 to 5 stars.")}
+                      </p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer shrink-0">
                       <input type="checkbox" className="sr-only peer" checked={ajustes.activarEstrellas} onChange={(e) => setAjustes({...ajustes, activarEstrellas: e.target.checked})} />
@@ -822,11 +1115,23 @@ export default function MasterDashboard() {
                   
                   <div className={`p-4 rounded-2xl border ${isDark ? "bg-black/30 border-neutral-800" : "bg-gray-50 border-gray-200"}`}>
                     <h3 className="font-bold text-lg mb-2">{t("Requisito para Participación", "Participation Requirement")}</h3>
-                    <p className={`text-sm mb-4 ${isDark ? "text-neutral-400" : "text-gray-500"}`}>{t("¿Cuántos stands debe calificar un visitante para entrar al sorteo?", "How many stands must a visitor rate to enter the draw?")}</p>
-                    <input type="number" min="1" value={ajustes.requiredStandsForLottery} onChange={(e) => setAjustes({...ajustes, requiredStandsForLottery: Number(e.target.value)})} className={`w-full rounded-xl p-4 text-2xl font-bold text-center focus:outline-none focus:border-[#c81474] transition-colors shadow-inner border ${isDark ? "bg-neutral-950/80 border-neutral-700 text-white" : "bg-white border-gray-300 text-gray-900"}`} />
+                    <p className={`text-sm mb-4 ${isDark ? "text-neutral-400" : "text-gray-500"}`}>
+                      {t("¿Cuántos stands debe calificar un visitante para entrar al sorteo?", "How many stands must a visitor rate to enter the draw?")}
+                    </p>
+                    <input 
+                      type="number" 
+                      min="1" 
+                      value={ajustes.requiredStandsForLottery} 
+                      onChange={(e) => setAjustes({...ajustes, requiredStandsForLottery: Number(e.target.value)})} 
+                      className={`w-full rounded-xl p-4 text-2xl font-bold text-center focus:outline-none focus:border-[#c81474] transition-colors shadow-inner border ${isDark ? "bg-neutral-950/80 border-neutral-700 text-white" : "bg-white border-gray-300 text-gray-900"}`} 
+                    />
                   </div>
                   
-                  <button onClick={guardarConfiguracion} disabled={loading} className="w-full py-4 bg-[#c81474] hover:bg-[#a61060] text-white font-black text-lg uppercase tracking-widest rounded-xl transition-all shadow-lg disabled:opacity-50">
+                  <button 
+                    onClick={guardarConfiguracion} 
+                    disabled={loading} 
+                    className="w-full py-4 bg-[#c81474] hover:bg-[#a61060] text-white font-black text-lg uppercase tracking-widest rounded-xl transition-all shadow-lg disabled:opacity-50"
+                  >
                     {loading ? t("Guardando...", "Saving...") : t("Guardar Cambios", "Save Changes")}
                   </button>
                 </div>
@@ -843,12 +1148,12 @@ export default function MasterDashboard() {
         {confirmDialog.isOpen && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-100 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}>
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className={`border rounded-3xl p-8 max-w-sm w-full shadow-2xl relative text-center ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-gray-200"}`} onClick={(e) => e.stopPropagation()}>
-              <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+              <AlertTriangle className="w-16 h-16 text-[#c81474] mx-auto mb-4" />
               <h3 className="text-2xl font-bold mb-3">{t("¿Estás seguro?", "Are you sure?")}</h3>
               <p className={`mb-8 ${isDark ? "text-neutral-400" : "text-gray-600"}`}>{confirmDialog.message}</p>
               <div className="flex space-x-4">
                 <button onClick={() => setConfirmDialog({ ...confirmDialog, isOpen: false })} className={`flex-1 px-4 py-3 rounded-xl font-bold transition-all ${isDark ? "bg-neutral-800 hover:bg-neutral-700 text-white" : "bg-gray-100 hover:bg-gray-200 text-gray-900"}`}>{t("Cancelar", "Cancel")}</button>
-                <button onClick={confirmDialog.onConfirm} className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold transition-all">{t("Confirmar", "Confirm")}</button>
+                <button onClick={confirmDialog.onConfirm} className="flex-1 px-4 py-3 bg-[#c81474] hover:bg-[#a61060] text-white rounded-xl font-bold transition-all">{t("Confirmar", "Confirm")}</button>
               </div>
             </motion.div>
           </motion.div>
@@ -924,7 +1229,7 @@ export default function MasterDashboard() {
                     <input type="text" required value={editingCliente.apellidos} onChange={(e) => setEditingCliente({...editingCliente, apellidos: e.target.value})} className={`w-full border rounded-xl p-3 focus:outline-none focus:border-[#c81474] ${isDark ? "bg-neutral-950 border-neutral-700 text-white" : "bg-white border-gray-300 text-gray-900"}`} />
                   </div>
                   <div>
-                    <label className={`block text-sm font-bold mb-2 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>{t("Documento (Usuario/Pass)", "Document (User/Pass)")}</label>
+                    <label className={`block text-sm font-bold mb-2 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>{t("Documento", "Document")}</label>
                     <input type="text" required value={editingCliente.username} onChange={(e) => setEditingCliente({...editingCliente, username: e.target.value})} className={`w-full border rounded-xl p-3 focus:outline-none focus:border-[#c81474] ${isDark ? "bg-neutral-950 border-neutral-700 text-white" : "bg-white border-gray-300 text-gray-900"}`} />
                   </div>
                   <div>
@@ -946,7 +1251,9 @@ export default function MasterDashboard() {
                 </div>
                 
                 <div className={`pt-4 mt-2 border-t shrink-0 ${isDark ? "border-neutral-800" : "border-gray-200"}`}>
-                  <button type="submit" disabled={loading} className="w-full bg-[#c81474] hover:bg-[#a61060] text-white font-bold py-3 px-4 rounded-xl transition-all shadow-md disabled:opacity-50">{t("Guardar Cambios", "Save Changes")}</button>
+                  <button type="submit" disabled={loading} className="w-full bg-[#c81474] hover:bg-[#a61060] text-white font-bold py-3 px-4 rounded-xl transition-all shadow-md disabled:opacity-50">
+                    {t("Guardar Cambios", "Save Changes")}
+                  </button>
                 </div>
               </form>
             </motion.div>
@@ -962,7 +1269,7 @@ export default function MasterDashboard() {
               
               {tipoDetalle === "GANADOR" ? (
                 <div>
-                  <h2 className={`text-3xl font-bold mb-6 uppercase tracking-widest border-b pb-4 flex items-center ${isDark ? "text-yellow-400 border-neutral-800" : "text-yellow-600 border-gray-200"}`}>
+                  <h2 className={`text-3xl font-bold mb-6 uppercase tracking-widest border-b pb-4 flex items-center ${isDark ? "text-[#c81474] border-neutral-800" : "text-[#c81474] border-gray-200"}`}>
                     <Trophy className="w-8 h-8 mr-3" /> {t("Perfil del Ganador", "Winner Profile")}
                   </h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-lg">
@@ -973,8 +1280,8 @@ export default function MasterDashboard() {
                     <div><p className={`text-sm ${isDark ? "text-neutral-500" : "text-gray-500"}`}>{t("Cargo", "Position")}</p><p className="font-bold">{entidadSeleccionada?.cargo || "N/A"}</p></div>
                     <div><p className={`text-sm ${isDark ? "text-neutral-500" : "text-gray-500"}`}>{t("Teléfono", "Phone")}</p><p className="font-bold">{entidadSeleccionada?.telefono || "N/A"}</p></div>
                     <div className="md:col-span-2"><p className={`text-sm ${isDark ? "text-neutral-500" : "text-gray-500"}`}>{t("Correo Electrónico", "Email")}</p><p className="font-bold text-[#c81474]">{entidadSeleccionada?.correo || "N/A"}</p></div>
-                    <div className={`md:col-span-2 mt-4 p-4 border rounded-xl ${isDark ? "bg-yellow-500/10 border-yellow-500/30 text-yellow-500" : "bg-yellow-50 border-yellow-200 text-yellow-700"}`}>
-                      <p className="font-bold flex items-center"><Star className={`w-5 h-5 mr-2 ${isDark ? "fill-yellow-500" : "fill-yellow-500"}`} /> {t("Stands Calificados:", "Rated Stands:")} {entidadSeleccionada?._count?.calificacionesDadas}</p>
+                    <div className={`md:col-span-2 mt-4 p-4 border rounded-xl ${isDark ? "bg-[#c81474]/10 border-[#c81474]/30 text-[#c81474]" : "bg-pink-50 border-pink-200 text-[#c81474]"}`}>
+                      <p className="font-bold flex items-center"><Star className={`w-5 h-5 mr-2 ${isDark ? "fill-[#c81474]" : "fill-[#c81474]"}`} /> {t("Stands Calificados:", "Rated Stands:")} {entidadSeleccionada?._count?.calificacionesDadas}</p>
                     </div>
                   </div>
                 </div>
@@ -1003,8 +1310,8 @@ export default function MasterDashboard() {
                             <div className="text-right">
                               <span className={`text-xs block mb-1 ${isDark ? "text-neutral-500" : "text-gray-500"}`}>{new Date(h.createdAt).toLocaleDateString(language === "en" ? 'en-US' : 'es-ES')} {new Date(h.createdAt).toLocaleTimeString(language === "en" ? 'en-US' : 'es-ES')}</span>
                               {h.estrellas && (
-                                <span className={`font-bold px-2 py-1 rounded-md inline-flex items-center text-sm ${isDark ? "bg-yellow-500/20 text-yellow-500" : "bg-yellow-100 text-yellow-700 border border-yellow-200"}`}>
-                                  {h.estrellas} <Star className="w-3 h-3 ml-1 fill-yellow-500" />
+                                <span className={`font-bold px-2 py-1 rounded-md inline-flex items-center text-sm ${isDark ? "bg-[#c81474]/20 text-[#c81474]" : "bg-pink-100 text-[#c81474] border border-pink-200"}`}>
+                                  {h.estrellas} <Star className="w-3 h-3 ml-1 fill-[#c81474]" />
                                 </span>
                               )}
                             </div>

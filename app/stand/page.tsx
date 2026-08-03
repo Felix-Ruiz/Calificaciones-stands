@@ -31,12 +31,12 @@ export default function StandDashboard() {
     const savedTheme = localStorage.getItem("stand-theme") as "dark" | "light";
     if (savedTheme) setTheme(savedTheme);
 
-    const savedLang = localStorage.getItem("stand-lang") as "en" | "es";
+    const savedLang = localStorage.getItem("app-lang") as "en" | "es";
     if (savedLang) {
       setLanguage(savedLang);
     } else {
       setLanguage("en");
-      localStorage.setItem("stand-lang", "en");
+      localStorage.setItem("app-lang", "en");
     }
 
     const fetchSessionAndData = async () => {
@@ -85,7 +85,7 @@ export default function StandDashboard() {
   const toggleLanguage = () => {
     const newLang = language === "en" ? "es" : "en";
     setLanguage(newLang);
-    localStorage.setItem("stand-lang", newLang);
+    localStorage.setItem("app-lang", newLang);
   };
 
   const isDark = theme === "dark";
@@ -149,8 +149,16 @@ export default function StandDashboard() {
             <title>${t("Imprimir QR", "Print QR")} - ${user?.name}</title>
             <style>
               @page { size: auto; margin: 0mm; } 
-              body { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; font-family: Arial, sans-serif; text-align: center; background: white; }
-              .qr-container { padding: 30px; border: 6px solid #c81474; border-radius: 30px; margin: 30px 0; background: white; }
+              body { 
+                display: flex; flex-direction: column; align-items: center; 
+                justify-content: center; height: 100vh; margin: 0; padding: 20px; 
+                box-sizing: border-box; font-family: Arial, sans-serif; 
+                text-align: center; background: white; 
+              }
+              .qr-container { 
+                padding: 30px; border: 6px solid #c81474; 
+                border-radius: 30px; margin: 30px 0; background: white; 
+              }
               img { width: 500px; height: 500px; object-fit: contain; }
               h1 { font-size: 50px; margin: 0; color: #000; font-weight: 900; text-transform: uppercase; }
               p { font-size: 26px; color: #333; margin: 0; font-weight: bold; }
@@ -158,9 +166,15 @@ export default function StandDashboard() {
           </head>
           <body>
             <h1>${user?.name}</h1>
-            <div class="qr-container"><img src="${imgUrl}" alt="QR Code" /></div>
+            <div class="qr-container">
+              <img src="${imgUrl}" alt="QR Code" />
+            </div>
             <p>${t("Escanea este código para calificar nuestro stand", "Scan this code to rate our stand")}</p>
-            <script>window.onload = function() { setTimeout(() => { window.print(); window.close(); }, 800); }</script>
+            <script>
+              window.onload = function() { 
+                setTimeout(() => { window.print(); window.close(); }, 800); 
+              }
+            </script>
           </body>
         </html>
       `);
@@ -173,25 +187,43 @@ export default function StandDashboard() {
     setIsClienteModalOpen(true);
   };
 
-  // DATOS PARA LA GRÁFICA DE RECHARTS
+  // DATOS PARA LA GRÁFICA DE RECHARTS (Corregido a "★ 5", "★ 4", etc para que no se corte)
   const chartData = [5, 4, 3, 2, 1].map(star => ({
-    name: `${star} ${t("Estrellas", "Stars")}`,
+    name: `★ ${star}`,
     valoraciones: calificaciones.filter(c => c.estrellas === star).length
   }));
   const maxValoraciones = Math.max(...chartData.map(d => d.valoraciones));
 
-  if (loading) return <div className={`min-h-screen flex justify-center items-center font-bold ${isDark ? "bg-neutral-950 text-[#c81474]" : "bg-gray-50 text-[#c81474]"}`}>{t("Cargando panel...", "Loading dashboard...")}</div>;
+  if (loading) {
+    return (
+      <div className={`min-h-screen flex justify-center items-center font-bold ${isDark ? "bg-neutral-950 text-[#c81474]" : "bg-gray-50 text-[#c81474]"}`}>
+        {t("Cargando panel...", "Loading dashboard...")}
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen flex flex-col relative overflow-hidden transition-colors duration-300 ${isDark ? "bg-neutral-950 text-white" : "bg-gray-50 text-gray-900"}`}>
-      {isDark && <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-[#c81474]/10 rounded-full blur-[120px] pointer-events-none" />}
       
+      {/* Luces decorativas */}
+      {isDark && (
+        <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-[#c81474]/10 rounded-full blur-[120px] pointer-events-none" />
+      )}
+      
+      {/* MARCA DE AGUA DEL LOGO EN EL FONDO */}
+      <div className={`absolute inset-0 z-0 flex justify-center items-center pointer-events-none ${isDark ? "opacity-10" : "opacity-[0.03]"}`}>
+        <img src="/logo.png" alt="WEEF Background" className="w-[80%] h-[80%] object-contain" />
+      </div>
+
       <header className={`px-8 py-4 flex justify-between items-center relative z-10 border-b ${isDark ? "bg-neutral-900/80 backdrop-blur-md border-[#c81474]/20" : "bg-white/90 backdrop-blur-md border-gray-200 shadow-sm"}`}>
         
+        {/* LOGO + BIENVENIDA */}
         <div className="flex items-center space-x-4">
           <img src="/logo.png" alt="Logo" className="w-12 h-12 object-contain" />
           <div>
-            <p className={`text-sm tracking-widest uppercase font-bold ${isDark ? "text-neutral-400" : "text-gray-500"}`}>{t("Bienvenido, Stand", "Welcome, Stand")}</p>
+            <p className={`text-sm tracking-widest uppercase font-bold ${isDark ? "text-neutral-400" : "text-gray-500"}`}>
+              {t("Bienvenido, Stand", "Welcome, Stand")}
+            </p>
             <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-linear-to-r from-[#c81474] to-pink-500 truncate">
               {user?.name}
             </h1>
@@ -199,13 +231,24 @@ export default function StandDashboard() {
         </div>
 
         <div className="flex items-center space-x-3 shrink-0">
-          <button onClick={toggleLanguage} className={`p-2 rounded-full transition-colors ${isDark ? "bg-neutral-800/50 text-blue-400 hover:bg-neutral-700" : "bg-gray-100 text-blue-600 hover:bg-gray-200"}`} title={t("Cambiar Idioma", "Change Language")}>
+          <button 
+            onClick={toggleLanguage} 
+            className={`p-2 rounded-full transition-colors ${isDark ? "bg-neutral-800/50 text-[#c81474] hover:bg-neutral-700" : "bg-gray-100 text-[#c81474] hover:bg-gray-200"}`} 
+            title={t("Cambiar Idioma", "Change Language")}
+          >
             <Globe className="w-5 h-5" />
           </button>
-          <button onClick={toggleTheme} className={`p-2 rounded-full transition-colors ${isDark ? "bg-neutral-800/50 text-yellow-400 hover:bg-neutral-700" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`} title={t("Cambiar Tema", "Toggle Theme")}>
+          <button 
+            onClick={toggleTheme} 
+            className={`p-2 rounded-full transition-colors ${isDark ? "bg-neutral-800/50 text-[#c81474] hover:bg-neutral-700" : "bg-gray-100 text-[#c81474] hover:bg-gray-200"}`} 
+            title={t("Cambiar Tema", "Toggle Theme")}
+          >
             {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
-          <button onClick={() => signOut({ callbackUrl: "/login" })} className={`flex items-center space-x-2 px-3 py-2 rounded-lg font-bold transition-colors ${isDark ? "text-red-400 hover:bg-red-500/10 hover:text-red-300" : "text-red-600 hover:bg-red-50"}`}>
+          <button 
+            onClick={() => signOut({ callbackUrl: "/login" })} 
+            className={`flex items-center space-x-2 px-3 py-2 rounded-lg font-bold transition-colors ${isDark ? "text-red-400 hover:bg-red-500/10 hover:text-red-300" : "text-red-600 hover:bg-red-50"}`}
+          >
             <LogOut className="w-5 h-5" />
             <span className="hidden sm:inline">{t("Cerrar Sesión", "Sign Out")}</span>
           </button>
@@ -217,56 +260,72 @@ export default function StandDashboard() {
         {/* WIDGETS + GRÁFICA EN GRID DE 3 COLUMNAS */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
           
-          <div className={`relative border rounded-3xl p-8 flex flex-col justify-center items-start shadow-xl overflow-hidden ${isDark ? "bg-neutral-900/60 backdrop-blur-xl border-[#c81474]/30" : "bg-white border-gray-200"}`}>
+          <div className={`md:col-span-2 relative border rounded-3xl p-8 flex flex-col justify-center items-start shadow-xl overflow-hidden ${isDark ? "bg-neutral-900/60 backdrop-blur-xl border-[#c81474]/30" : "bg-white border-gray-200"}`}>
             <div className="absolute top-[-20%] right-[-10%] opacity-10 pointer-events-none rotate-12">
               <Star className="w-64 h-64 text-[#c81474] fill-[#c81474]" />
             </div>
             <p className="text-[#c81474] font-bold uppercase tracking-widest text-sm mb-2 flex items-center">
-              <Star className="w-4 h-4 mr-2 fill-[#c81474]" /> {t("Rendimiento Global", "Global Performance")}
+              <Star className="w-4 h-4 mr-2 fill-[#c81474]" /> 
+              {/* Cambiado el texto a Calificaciones Recibidas */}
+              {t("Calificaciones Recibidas", "Received Ratings")}
             </p>
             <div className="flex items-baseline space-x-4 relative z-10">
               <h2 className={`text-7xl font-black text-transparent bg-clip-text drop-shadow-lg ${isDark ? "bg-linear-to-br from-white via-pink-100 to-[#c81474]" : "bg-linear-to-br from-gray-900 to-[#c81474]"}`}>
                 {calificaciones.length}
               </h2>
-              <span className={`text-lg font-medium leading-tight ${isDark ? "text-neutral-400" : "text-gray-500"}`} dangerouslySetInnerHTML={{ __html: t("calificaciones<br/>recibidas", "received<br/>ratings") }}></span>
+              <span className={`text-lg font-medium leading-tight ${isDark ? "text-neutral-400" : "text-gray-500"}`} dangerouslySetInnerHTML={{ __html: t("calificaciones<br/>totales", "total<br/>ratings") }}></span>
             </div>
           </div>
 
-          <button onClick={() => setQrModalOpen(true)} className="group relative bg-linear-to-br from-[#c81474] to-pink-700 rounded-3xl p-8 flex flex-col justify-center items-center hover:from-[#a61060] hover:to-pink-600 transition-all shadow-xl overflow-hidden">
+          <button 
+            onClick={() => setQrModalOpen(true)} 
+            className="group relative bg-linear-to-br from-[#c81474] to-pink-700 rounded-3xl p-8 flex flex-col justify-center items-center hover:from-[#a61060] hover:to-pink-600 transition-all shadow-xl overflow-hidden"
+          >
             <div className="bg-white p-2 rounded-xl mb-4 relative z-10 overflow-hidden flex justify-center items-center min-w-20 min-h-20" ref={smallQrRef}>
             </div>
             <div className="flex items-center space-x-2 relative z-10">
               <Maximize2 className="w-5 h-5 text-white" />
-              <span className="font-bold text-lg uppercase tracking-wider text-white">{t("Mostrar QR", "Show QR")}</span>
+              <span className="font-bold text-lg uppercase tracking-wider text-white">
+                {t("Mostrar QR", "Show QR")}
+              </span>
             </div>
           </button>
+        </div>
 
-          {/* GRÁFICO RECHARTS */}
-          <div className={`relative border rounded-3xl p-6 shadow-xl flex flex-col ${isDark ? "bg-neutral-900/60 backdrop-blur-xl border-neutral-800" : "bg-white border-gray-200"}`}>
-            <h3 className={`text-sm font-bold uppercase tracking-widest mb-4 flex items-center ${isDark ? "text-neutral-400" : "text-gray-500"}`}>
-              <BarChart3 className="w-4 h-4 mr-2" /> {t("Distribución de Estrellas", "Star Distribution")}
-            </h3>
-            <div className="flex-1 w-full min-h-37.5">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                  <XAxis type="number" hide domain={[0, maxValoraciones === 0 ? 1 : maxValoraciones]} />
-                  <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: isDark ? '#9ca3af' : '#6b7280', fontSize: 12, fontWeight: 'bold' }} />
-                  <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ backgroundColor: isDark ? '#171717' : '#ffffff', border: 'none', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }} itemStyle={{ color: '#c81474', fontWeight: 'bold' }} />
-                  <Bar dataKey="valoraciones" radius={[0, 8, 8, 0]} barSize={12}>
-                    {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={index < 2 ? '#c81474' : (isDark ? '#3f3f46' : '#e5e7eb')} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+        {/* GRÁFICO RECHARTS DE ESTRELLAS */}
+        <div className={`relative border rounded-3xl p-6 shadow-xl flex flex-col mb-10 ${isDark ? "bg-neutral-900/60 backdrop-blur-xl border-neutral-800" : "bg-white border-gray-200"}`}>
+          <h3 className={`text-sm font-bold uppercase tracking-widest mb-4 flex items-center ${isDark ? "text-neutral-400" : "text-gray-500"}`}>
+            <BarChart3 className="w-4 h-4 mr-2" /> 
+            {t("Distribución de Estrellas", "Star Distribution")}
+          </h3>
+          <div className="flex-1 w-full min-h-37.5">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                <XAxis type="number" hide domain={[0, maxValoraciones === 0 ? 1 : maxValoraciones]} />
+                <YAxis dataKey="name" type="category" width={40} axisLine={false} tickLine={false} tick={{ fill: isDark ? '#9ca3af' : '#6b7280', fontSize: 12, fontWeight: 'bold' }} />
+                <Tooltip 
+                  cursor={{ fill: 'transparent' }} 
+                  contentStyle={{ backgroundColor: isDark ? '#171717' : '#ffffff', border: 'none', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }} 
+                  itemStyle={{ color: '#c81474', fontWeight: 'bold' }} 
+                />
+                <Bar dataKey="valoraciones" radius={[0, 8, 8, 0]} barSize={12}>
+                  {chartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={'#c81474'} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
         <div className={`border rounded-2xl overflow-hidden shadow-sm ${isDark ? "bg-neutral-900/50 backdrop-blur-md border-neutral-800" : "bg-white border-gray-200"}`}>
           <div className={`p-6 border-b flex justify-between items-center ${isDark ? "border-neutral-800 bg-neutral-900" : "border-gray-200 bg-gray-50"}`}>
             <h3 className="text-xl font-bold">{t("Feedback de Visitantes", "Visitor Feedback")}</h3>
-            <button onClick={exportarAExcel} disabled={calificaciones.length === 0} className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-bold transition-colors disabled:opacity-50 ${isDark ? "bg-neutral-800 hover:bg-neutral-700 text-white" : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-100"}`}>
+            <button 
+              onClick={exportarAExcel} 
+              disabled={calificaciones.length === 0} 
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-bold transition-colors disabled:opacity-50 ${isDark ? "bg-neutral-800 hover:bg-neutral-700 text-white" : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-100"}`}
+            >
               <Download className="w-4 h-4" />
               <span className="text-sm">{t("Exportar Excel", "Export Excel")}</span>
             </button>
@@ -283,7 +342,11 @@ export default function StandDashboard() {
               </thead>
               <tbody>
                 {calificaciones.length === 0 ? (
-                  <tr><td colSpan={4} className={`p-12 text-center font-medium ${isDark ? "text-neutral-500" : "text-gray-500"}`}>{t("Aún no tienes calificaciones. ¡Muestra tu código QR!", "You have no ratings yet. Show your QR code!")}</td></tr>
+                  <tr>
+                    <td colSpan={4} className={`p-12 text-center font-medium ${isDark ? "text-neutral-500" : "text-gray-500"}`}>
+                      {t("Aún no tienes calificaciones. ¡Muestra tu código QR!", "You have no ratings yet. Show your QR code!")}
+                    </td>
+                  </tr>
                 ) : (
                   calificaciones.map((c: any) => (
                     <tr 
@@ -292,19 +355,29 @@ export default function StandDashboard() {
                       className={`border-b transition-colors cursor-pointer group ${isDark ? "border-neutral-800/50 hover:bg-neutral-800/80" : "border-gray-100 hover:bg-gray-50"}`}
                     >
                       <td className="p-4">
-                        <p className="font-bold group-hover:text-[#c81474] transition-colors">{c.cliente.nombres} {c.cliente.apellidos}</p>
-                        <p className={`text-xs font-medium ${isDark ? "text-neutral-500" : "text-gray-500"}`}>{c.cliente.cargo}</p>
+                        <p className="font-bold group-hover:text-[#c81474] transition-colors">
+                          {c.cliente.nombres} {c.cliente.apellidos}
+                        </p>
+                        <p className={`text-xs font-medium ${isDark ? "text-neutral-500" : "text-gray-500"}`}>
+                          {c.cliente.cargo}
+                        </p>
                       </td>
-                      <td className={`p-4 font-medium ${isDark ? "text-neutral-300" : "text-gray-700"}`}>{c.cliente.institucion}</td>
+                      <td className={`p-4 font-medium ${isDark ? "text-neutral-300" : "text-gray-700"}`}>
+                        {c.cliente.institucion}
+                      </td>
                       <td className="p-4">
                         {c.estrellas ? (
-                          <div className={`flex items-center space-x-1 px-2 py-1 rounded-full w-fit ${isDark ? "bg-yellow-500/10" : "bg-yellow-50 border border-yellow-200"}`}>
-                            <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                            <span className="font-bold text-yellow-600">{c.estrellas}</span>
+                          <div className={`flex items-center space-x-1 px-2 py-1 rounded-full w-fit ${isDark ? "bg-[#c81474]/10" : "bg-pink-50 border border-pink-200"}`}>
+                            <Star className="w-4 h-4 text-[#c81474] fill-[#c81474]" />
+                            <span className="font-bold text-[#c81474]">{c.estrellas}</span>
                           </div>
-                        ) : <span className={`text-sm font-bold ${isDark ? "text-neutral-500" : "text-gray-400"}`}>N/A</span>}
+                        ) : (
+                          <span className={`text-sm font-bold ${isDark ? "text-neutral-500" : "text-gray-400"}`}>N/A</span>
+                        )}
                       </td>
-                      <td className={`p-4 max-w-xs truncate ${isDark ? "text-neutral-300" : "text-gray-600"}`} title={c.comentario}>{c.comentario}</td>
+                      <td className={`p-4 max-w-xs truncate ${isDark ? "text-neutral-300" : "text-gray-600"}`} title={c.comentario}>
+                        {c.comentario}
+                      </td>
                     </tr>
                   ))
                 )}
@@ -316,22 +389,57 @@ export default function StandDashboard() {
 
       <AnimatePresence>
         {isClienteModalOpen && selectedCliente && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className={`border rounded-3xl p-8 max-w-lg w-full shadow-2xl relative ${isDark ? "bg-neutral-900 border-[#c81474]" : "bg-white border-[#c81474]"}`}>
-              <button onClick={() => setIsClienteModalOpen(false)} className={`absolute top-6 right-6 p-2 rounded-full transition-colors ${isDark ? "text-neutral-500 hover:text-white bg-neutral-800" : "text-gray-500 hover:text-gray-900 bg-gray-100"}`}><X className="w-5 h-5" /></button>
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }} 
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }} 
+              animate={{ scale: 1, opacity: 1 }} 
+              exit={{ scale: 0.9, opacity: 0 }} 
+              className={`border rounded-3xl p-8 max-w-lg w-full shadow-2xl relative ${isDark ? "bg-neutral-900 border-[#c81474]" : "bg-white border-[#c81474]"}`}
+            >
+              <button 
+                onClick={() => setIsClienteModalOpen(false)} 
+                className={`absolute top-6 right-6 p-2 rounded-full transition-colors ${isDark ? "text-neutral-500 hover:text-white bg-neutral-800" : "text-gray-500 hover:text-gray-900 bg-gray-100"}`}
+              >
+                <X className="w-5 h-5" />
+              </button>
               
               <div className={`flex items-center mb-6 border-b pb-4 ${isDark ? "border-neutral-800" : "border-gray-200"}`}>
                 <UserCircle className="w-10 h-10 text-[#c81474] mr-3" />
-                <h2 className={`text-2xl font-bold uppercase tracking-widest ${isDark ? "text-white" : "text-gray-900"}`}>{t("Perfil del Visitante", "Visitor Profile")}</h2>
+                <h2 className={`text-2xl font-bold uppercase tracking-widest ${isDark ? "text-white" : "text-gray-900"}`}>
+                  {t("Perfil del Visitante", "Visitor Profile")}
+                </h2>
               </div>
               
               <div className="space-y-4 text-lg">
-                <div><p className={`text-sm uppercase font-bold ${isDark ? "text-neutral-500" : "text-gray-500"}`}>{t("Nombres", "First Name")}</p><p className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}>{selectedCliente.nombres}</p></div>
-                <div><p className={`text-sm uppercase font-bold ${isDark ? "text-neutral-500" : "text-gray-500"}`}>{t("Apellidos", "Last Name")}</p><p className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}>{selectedCliente.apellidos}</p></div>
-                <div><p className={`text-sm uppercase font-bold ${isDark ? "text-neutral-500" : "text-gray-500"}`}>{t("Institución", "Institution")}</p><p className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}>{selectedCliente.institucion || t("No registrada", "Not registered")}</p></div>
-                <div><p className={`text-sm uppercase font-bold ${isDark ? "text-neutral-500" : "text-gray-500"}`}>{t("Cargo", "Position")}</p><p className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}>{selectedCliente.cargo || t("No registrado", "Not registered")}</p></div>
-                <div><p className={`text-sm uppercase font-bold ${isDark ? "text-neutral-500" : "text-gray-500"}`}>{t("Teléfono", "Phone")}</p><p className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}>{selectedCliente.telefono || t("No registrado", "Not registered")}</p></div>
-                <div><p className={`text-sm uppercase font-bold ${isDark ? "text-neutral-500" : "text-gray-500"}`}>{t("Correo Electrónico", "Email")}</p><p className="font-medium text-[#c81474] break-all">{selectedCliente.correo || t("No registrado", "Not registered")}</p></div>
+                <div>
+                  <p className={`text-sm uppercase font-bold ${isDark ? "text-neutral-500" : "text-gray-500"}`}>{t("Nombres", "First Name")}</p>
+                  <p className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}>{selectedCliente.nombres}</p>
+                </div>
+                <div>
+                  <p className={`text-sm uppercase font-bold ${isDark ? "text-neutral-500" : "text-gray-500"}`}>{t("Apellidos", "Last Name")}</p>
+                  <p className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}>{selectedCliente.apellidos}</p>
+                </div>
+                <div>
+                  <p className={`text-sm uppercase font-bold ${isDark ? "text-neutral-500" : "text-gray-500"}`}>{t("Institución", "Institution")}</p>
+                  <p className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}>{selectedCliente.institucion || t("No registrada", "Not registered")}</p>
+                </div>
+                <div>
+                  <p className={`text-sm uppercase font-bold ${isDark ? "text-neutral-500" : "text-gray-500"}`}>{t("Cargo", "Position")}</p>
+                  <p className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}>{selectedCliente.cargo || t("No registrado", "Not registered")}</p>
+                </div>
+                <div>
+                  <p className={`text-sm uppercase font-bold ${isDark ? "text-neutral-500" : "text-gray-500"}`}>{t("Teléfono", "Phone")}</p>
+                  <p className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}>{selectedCliente.telefono || t("No registrado", "Not registered")}</p>
+                </div>
+                <div>
+                  <p className={`text-sm uppercase font-bold ${isDark ? "text-neutral-500" : "text-gray-500"}`}>{t("Correo Electrónico", "Email")}</p>
+                  <p className="font-medium text-[#c81474] break-all">{selectedCliente.correo || t("No registrado", "Not registered")}</p>
+                </div>
               </div>
             </motion.div>
           </motion.div>
@@ -340,24 +448,45 @@ export default function StandDashboard() {
 
       <AnimatePresence>
         {qrModalOpen && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4">
-            <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.8, opacity: 0 }} className="bg-white rounded-3xl p-8 relative max-w-2xl w-full flex flex-col items-center shadow-[0_0_100px_rgba(200,20,116,0.3)]">
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }} 
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.8, opacity: 0 }} 
+              animate={{ scale: 1, opacity: 1 }} 
+              exit={{ scale: 0.8, opacity: 0 }} 
+              className="bg-white rounded-3xl p-8 relative max-w-2xl w-full flex flex-col items-center shadow-[0_0_100px_rgba(200,20,116,0.3)]"
+            >
               
               <div className="absolute top-6 right-6 flex space-x-2">
-                <button onClick={imprimirQR} className="text-neutral-600 hover:text-[#c81474] transition-colors bg-neutral-100 hover:bg-pink-100 rounded-full p-2 flex items-center space-x-2 px-4">
-                  <Printer className="w-5 h-5" /> <span className="font-bold">{t("Imprimir", "Print")}</span>
+                <button 
+                  onClick={imprimirQR} 
+                  className="text-neutral-600 hover:text-[#c81474] transition-colors bg-neutral-100 hover:bg-pink-100 rounded-full p-2 flex items-center space-x-2 px-4"
+                >
+                  <Printer className="w-5 h-5" /> 
+                  <span className="font-bold">{t("Imprimir", "Print")}</span>
                 </button>
-                <button onClick={() => setQrModalOpen(false)} className="text-neutral-400 hover:text-neutral-900 transition-colors bg-neutral-100 rounded-full p-2">
+                <button 
+                  onClick={() => setQrModalOpen(false)} 
+                  className="text-neutral-400 hover:text-neutral-900 transition-colors bg-neutral-100 rounded-full p-2"
+                >
                   <X className="w-6 h-6" />
                 </button>
               </div>
               
-              <h3 className="text-2xl font-bold text-neutral-900 mb-8 mt-4 uppercase tracking-widest text-center">{t("Escanea para calificar", "Scan to rate")}</h3>
+              <h3 className="text-2xl font-bold text-neutral-900 mb-8 mt-4 uppercase tracking-widest text-center">
+                {t("Escanea para calificar", "Scan to rate")}
+              </h3>
               
               <div className="bg-neutral-100 p-8 rounded-2xl w-full max-w-md flex justify-center items-center mb-8 border-4 border-[#c81474]">
                  <div ref={largeQrRef} className="w-full h-auto flex justify-center items-center"></div>
               </div>
-              <p className="text-neutral-500 font-medium text-center">{t("Stand:", "Stand:")} <span className="text-[#c81474] font-bold">{user?.name}</span></p>
+              <p className="text-neutral-500 font-medium text-center">
+                {t("Stand:", "Stand:")} <span className="text-[#c81474] font-bold">{user?.name}</span>
+              </p>
             </motion.div>
           </motion.div>
         )}
