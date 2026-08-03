@@ -4,20 +4,23 @@ import { useEffect, useState } from "react";
 import { getSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { LogOut, Star, CheckCircle, MapPin, Activity, Camera, X, Sun, Moon, Globe } from "lucide-react";
+import { LogOut, Star, CheckCircle, MapPin, Activity, Camera, X, Sun, Moon, Globe, Award, Gift } from "lucide-react";
 import { obtenerEstadisticasCliente } from "@/actions/clienteDashboard";
+import { obtenerAjustes, obtenerHistorialGanadores } from "@/actions/lotteryActions";
+import confetti from "canvas-confetti";
 
 export default function ClienteDashboard() {
   const [user, setUser] = useState<any>(null);
   const [estadisticas, setEstadisticas] = useState({ total: 0, historial: [] as any[] });
   const [loading, setLoading] = useState(true);
   
-  // Estados para Tema y Escáner
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [escanerAbierto, setEscanerAbierto] = useState(false);
-  
-  // ESTADO DE IDIOMA
   const [language, setLanguage] = useState<"en" | "es">("en");
+  
+  // ESTADOS DE GAMIFICACIÓN Y SORTEO
+  const [metaStands, setMetaStands] = useState(5);
+  const [soyGanador, setSoyGanador] = useState(false);
   
   const router = useRouter();
 
@@ -39,11 +42,48 @@ export default function ClienteDashboard() {
         setUser(session.user);
         const data = await obtenerEstadisticasCliente(session.user.id);
         setEstadisticas(data);
+
+        // Obtener la meta y chequear si hay que lanzar confeti
+        const ajustes = await obtenerAjustes();
+        setMetaStands(ajustes.requiredStandsForLottery);
+
+        if (data.total >= ajustes.requiredStandsForLottery) {
+          const yaCelebro = localStorage.getItem(`confetti_${session.user.id}`);
+          if (!yaCelebro) {
+            dispararConfeti();
+            localStorage.setItem(`confetti_${session.user.id}`, "true");
+          }
+        }
       }
       setLoading(false);
     };
     fetchUserData();
   }, []);
+
+  // SISTEMA DE NOTIFICACIÓN EN TIEMPO REAL (Polling)
+  useEffect(() => {
+    if (!user?.id) return;
+    const interval = setInterval(async () => {
+      const historial = await obtenerHistorialGanadores();
+      const gane = historial.some((premio: any) => premio.clienteId === user.id);
+      if (gane && !soyGanador) setSoyGanador(true);
+    }, 10000); // Consulta cada 10 segundos
+    return () => clearInterval(interval);
+  }, [user, soyGanador]);
+
+  const dispararConfeti = () => {
+    const duration = 3 * 1000;
+    const animationEnd = Date.now() + duration;
+    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+    const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+    const interval: any = setInterval(function() {
+      const timeLeft = animationEnd - Date.now();
+      if (timeLeft <= 0) return clearInterval(interval);
+      const particleCount = 50 * (timeLeft / duration);
+      confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+      confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+    }, 250);
+  };
 
   const toggleTheme = () => {
     const newTheme = theme === "dark" ? "light" : "dark";
@@ -60,14 +100,12 @@ export default function ClienteDashboard() {
   const isDark = theme === "dark";
   const t = (es: string, en: string) => language === "en" ? en : es;
 
-  // Lógica del Escáner
   useEffect(() => {
     let html5QrCode: any = null;
 
     if (escanerAbierto) {
       import("html5-qrcode").then(({ Html5Qrcode }) => {
         html5QrCode = new Html5Qrcode("qr-reader");
-        
         html5QrCode.start(
           { facingMode: "environment" },
           { fps: 15, qrbox: { width: 250, height: 250 } },
@@ -100,6 +138,9 @@ export default function ClienteDashboard() {
     return <div className={`min-h-screen flex justify-center items-center font-bold ${isDark ? "bg-neutral-950 text-[#c81474]" : "bg-gray-50 text-[#c81474]"}`}>{t("Cargando tu perfil...", "Loading your profile...")}</div>;
   }
 
+  const progreso = Math.min((estadisticas.total / metaStands) * 100, 100);
+  const completado = estadisticas.total >= metaStands;
+
   return (
     <div className={`min-h-screen flex flex-col relative overflow-hidden transition-colors duration-300 ${isDark ? "bg-neutral-950 text-white" : "bg-gray-50 text-gray-900"}`}>
       
@@ -110,10 +151,7 @@ export default function ClienteDashboard() {
         </>
       )}
 
-      {/* Navbar Móvil */}
       <header className={`px-6 py-4 flex justify-between items-center relative z-10 top-0 border-b ${isDark ? "bg-neutral-900/80 backdrop-blur-md border-[#c81474]/20" : "bg-white/90 backdrop-blur-md border-gray-200 shadow-sm"}`}>
-        
-        {/* LOGO + BIENVENIDA */}
         <div className="flex-1 mr-4 flex items-center space-x-4">
           <img src="/logo.png" alt="Logo" className="w-12 h-12 object-contain" />
           <div>
@@ -141,7 +179,7 @@ export default function ClienteDashboard() {
         </div>
       </header>
 
-      <main className="flex-1 p-6 max-w-2xl mx-auto w-full relative z-10">
+      <main className="flex-1 p-6 max-w-2xl mx-auto w-full relative z-10 pb-20">
         
         <motion.button
           initial={{ opacity: 0, y: 20 }}
@@ -153,16 +191,40 @@ export default function ClienteDashboard() {
           <span>{t("Escanear Stand", "Scan Stand")}</span>
         </motion.button>
 
+        {/* GAMIFICACIÓN: PASAPORTE DIGITAL */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`border rounded-3xl p-8 text-center shadow-[0_0_30px_rgba(200,20,116,0.15)] mb-8 ${isDark ? "bg-linear-to-br from-neutral-900 to-neutral-950 border-[#c81474]/30" : "bg-white border-gray-200"}`}
+          className={`border rounded-3xl p-8 text-center shadow-[0_0_30px_rgba(200,20,116,0.15)] mb-8 relative overflow-hidden ${isDark ? "bg-linear-to-br from-neutral-900 to-neutral-950 border-[#c81474]/30" : "bg-white border-gray-200"}`}
         >
-          <Activity className="w-10 h-10 text-[#c81474] mx-auto mb-4" />
-          <h2 className={`text-6xl font-black mb-2 ${isDark ? "text-white" : "text-gray-900"}`}>{estadisticas.total}</h2>
-          <p className="text-[#c81474] font-bold uppercase tracking-widest text-sm">{t("Stands Calificados", "Rated Stands")}</p>
-          <p className={`mt-4 text-sm font-medium ${isDark ? "text-neutral-400" : "text-gray-500"}`}>
-            {t("¡Sigue escaneando códigos QR para completar tu recorrido!", "Keep scanning QR codes to complete your tour!")}
+          {completado && <div className="absolute inset-0 bg-linear-to-br from-yellow-400/10 to-yellow-600/10 pointer-events-none" />}
+          
+          <div className="flex justify-center mb-4 relative z-10">
+            {completado ? (
+              <div className="bg-yellow-500/20 p-4 rounded-full shadow-[0_0_20px_rgba(234,179,8,0.4)] animate-pulse border border-yellow-500/50">
+                <Award className="w-12 h-12 text-yellow-500" />
+              </div>
+            ) : (
+              <Activity className="w-10 h-10 text-[#c81474]" />
+            )}
+          </div>
+          
+          <h2 className={`text-6xl font-black mb-2 relative z-10 ${completado ? "text-transparent bg-clip-text bg-linear-to-r from-yellow-400 to-yellow-600" : (isDark ? "text-white" : "text-gray-900")}`}>
+            {estadisticas.total} <span className="text-2xl text-neutral-500">/ {metaStands}</span>
+          </h2>
+          <p className="text-[#c81474] font-bold uppercase tracking-widest text-sm relative z-10">{t("Pasaporte Digital", "Digital Passport")}</p>
+          
+          {/* BARRA DE PROGRESO */}
+          <div className={`w-full rounded-full h-4 mb-2 mt-6 overflow-hidden border ${isDark ? "bg-neutral-800 border-neutral-700" : "bg-gray-200 border-gray-300"}`}>
+            <div className="bg-linear-to-r from-[#c81474] to-pink-500 h-4 rounded-full transition-all duration-1000 relative" style={{ width: `${progreso}%` }}>
+              <div className="absolute inset-0 bg-white/20 animate-[pulse_2s_ease-in-out_infinite]"></div>
+            </div>
+          </div>
+
+          <p className={`mt-2 text-sm font-medium relative z-10 ${completado ? "text-yellow-600 font-bold" : (isDark ? "text-neutral-400" : "text-gray-500")}`}>
+            {completado 
+              ? t("¡Misión Cumplida! Ya participas en el sorteo.", "Mission Accomplished! You are in the draw.") 
+              : t(`Faltan ${metaStands - estadisticas.total} stands para el sorteo.`, `${metaStands - estadisticas.total} stands left for the draw.`)}
           </p>
         </motion.div>
 
@@ -243,6 +305,28 @@ export default function ClienteDashboard() {
               <p className={`mt-6 text-center text-sm font-medium ${isDark ? "text-neutral-400" : "text-gray-600"}`}>
                 {t("Apunta tu cámara al código QR proporcionado por el stand para evaluarlo.", "Point your camera at the QR code provided by the stand to evaluate it.")}
               </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* SÚPER MODAL: ¡ERES EL GANADOR! */}
+      <AnimatePresence>
+        {soyGanador && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-100 flex items-center justify-center bg-black/95 backdrop-blur-xl p-4">
+            <motion.div initial={{ scale: 0.5, y: 100 }} animate={{ scale: 1, y: 0 }} transition={{ type: "spring", damping: 12 }} className="bg-linear-to-b from-yellow-400 to-yellow-600 rounded-3xl p-1 relative max-w-sm w-full shadow-[0_0_100px_rgba(234,179,8,0.6)]">
+              <div className="bg-neutral-950 rounded-[22px] p-8 text-center relative overflow-hidden">
+                <button onClick={() => setSoyGanador(false)} className="absolute top-4 right-4 text-neutral-500 hover:text-white"><X className="w-6 h-6" /></button>
+                <Gift className="w-24 h-24 text-yellow-500 mx-auto mb-6 drop-shadow-[0_0_15px_rgba(234,179,8,0.8)] animate-bounce" />
+                <h2 className="text-4xl font-black text-white uppercase tracking-widest mb-2">{t("¡FELICIDADES!", "CONGRATULATIONS!")}</h2>
+                <h3 className="text-xl font-bold text-yellow-400 mb-6">{t("¡HAS GANADO EL SORTEO!", "YOU WON THE DRAW!")}</h3>
+                <p className="text-neutral-300 font-medium mb-8 leading-relaxed">
+                  {t("Tu ID fue seleccionado. Por favor, acércate a la tarima principal para reclamar tu reconocimiento.", "Your ID was selected. Please approach the main stage to claim your award.")}
+                </p>
+                <button onClick={() => setSoyGanador(false)} className="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-black uppercase tracking-widest py-4 rounded-xl transition-colors">
+                  {t("Entendido", "Got it")}
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}

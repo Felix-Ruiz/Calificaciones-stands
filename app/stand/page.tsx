@@ -4,8 +4,9 @@ import { useEffect, useState, useRef } from "react";
 import { getSession, signOut } from "next-auth/react";
 import QRCodeStyling from "qr-code-styling";
 import { motion, AnimatePresence } from "framer-motion";
-import { Maximize2, Download, X, LogOut, Star, Printer, UserCircle, Sun, Moon, Globe } from "lucide-react";
+import { Maximize2, Download, X, LogOut, Star, Printer, UserCircle, Sun, Moon, Globe, BarChart3 } from "lucide-react";
 import * as XLSX from "xlsx";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { obtenerCalificacionesStand } from "@/actions/ratingActions";
 import { obtenerStands } from "@/actions/standActions";
 
@@ -172,6 +173,13 @@ export default function StandDashboard() {
     setIsClienteModalOpen(true);
   };
 
+  // DATOS PARA LA GRÁFICA DE RECHARTS
+  const chartData = [5, 4, 3, 2, 1].map(star => ({
+    name: `${star} ${t("Estrellas", "Stars")}`,
+    valoraciones: calificaciones.filter(c => c.estrellas === star).length
+  }));
+  const maxValoraciones = Math.max(...chartData.map(d => d.valoraciones));
+
   if (loading) return <div className={`min-h-screen flex justify-center items-center font-bold ${isDark ? "bg-neutral-950 text-[#c81474]" : "bg-gray-50 text-[#c81474]"}`}>{t("Cargando panel...", "Loading dashboard...")}</div>;
 
   return (
@@ -180,7 +188,6 @@ export default function StandDashboard() {
       
       <header className={`px-8 py-4 flex justify-between items-center relative z-10 border-b ${isDark ? "bg-neutral-900/80 backdrop-blur-md border-[#c81474]/20" : "bg-white/90 backdrop-blur-md border-gray-200 shadow-sm"}`}>
         
-        {/* LOGO + BIENVENIDA */}
         <div className="flex items-center space-x-4">
           <img src="/logo.png" alt="Logo" className="w-12 h-12 object-contain" />
           <div>
@@ -206,9 +213,11 @@ export default function StandDashboard() {
       </header>
 
       <main className="flex-1 p-8 max-w-7xl mx-auto w-full relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        
+        {/* WIDGETS + GRÁFICA EN GRID DE 3 COLUMNAS */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
           
-          <div className={`md:col-span-2 relative border rounded-3xl p-8 flex flex-col justify-center items-start shadow-xl overflow-hidden ${isDark ? "bg-neutral-900/60 backdrop-blur-xl border-[#c81474]/30" : "bg-white border-gray-200"}`}>
+          <div className={`relative border rounded-3xl p-8 flex flex-col justify-center items-start shadow-xl overflow-hidden ${isDark ? "bg-neutral-900/60 backdrop-blur-xl border-[#c81474]/30" : "bg-white border-gray-200"}`}>
             <div className="absolute top-[-20%] right-[-10%] opacity-10 pointer-events-none rotate-12">
               <Star className="w-64 h-64 text-[#c81474] fill-[#c81474]" />
             </div>
@@ -231,6 +240,27 @@ export default function StandDashboard() {
               <span className="font-bold text-lg uppercase tracking-wider text-white">{t("Mostrar QR", "Show QR")}</span>
             </div>
           </button>
+
+          {/* GRÁFICO RECHARTS */}
+          <div className={`relative border rounded-3xl p-6 shadow-xl flex flex-col ${isDark ? "bg-neutral-900/60 backdrop-blur-xl border-neutral-800" : "bg-white border-gray-200"}`}>
+            <h3 className={`text-sm font-bold uppercase tracking-widest mb-4 flex items-center ${isDark ? "text-neutral-400" : "text-gray-500"}`}>
+              <BarChart3 className="w-4 h-4 mr-2" /> {t("Distribución de Estrellas", "Star Distribution")}
+            </h3>
+            <div className="flex-1 w-full min-h-37.5">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                  <XAxis type="number" hide domain={[0, maxValoraciones === 0 ? 1 : maxValoraciones]} />
+                  <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: isDark ? '#9ca3af' : '#6b7280', fontSize: 12, fontWeight: 'bold' }} />
+                  <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ backgroundColor: isDark ? '#171717' : '#ffffff', border: 'none', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }} itemStyle={{ color: '#c81474', fontWeight: 'bold' }} />
+                  <Bar dataKey="valoraciones" radius={[0, 8, 8, 0]} barSize={12}>
+                    {chartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={index < 2 ? '#c81474' : (isDark ? '#3f3f46' : '#e5e7eb')} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
         </div>
 
         <div className={`border rounded-2xl overflow-hidden shadow-sm ${isDark ? "bg-neutral-900/50 backdrop-blur-md border-neutral-800" : "bg-white border-gray-200"}`}>
