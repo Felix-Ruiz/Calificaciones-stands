@@ -133,12 +133,18 @@ function LoginContent() {
         animate={{ opacity: 1, y: 0 }}
         className={`backdrop-blur-xl border rounded-3xl p-10 max-w-md w-full shadow-2xl relative z-10 overflow-hidden ${isDark ? "bg-neutral-900/80 border-neutral-800" : "bg-white/90 border-gray-200"}`}
       >
-        {/* LOGO DE FONDO COMO MARCA DE AGUA (Corregido a object-cover y opacidad súper baja) */}
-        <div className={`absolute inset-0 z-0 pointer-events-none ${isDark ? "opacity-[0.03]" : "opacity-10"}`}>
+        {/* LOGO DE FONDO COMO MARCA DE AGUA (SOLUCIÓN MÁSCARA RADIAL) */}
+        <div 
+          className={`absolute inset-0 z-0 flex justify-center items-center pointer-events-none ${isDark ? "opacity-20" : "opacity-10"}`}
+          style={{
+            maskImage: "radial-gradient(circle at center, black 30%, transparent 70%)",
+            WebkitMaskImage: "radial-gradient(circle at center, black 30%, transparent 70%)"
+          }}
+        >
           <img 
             src="/logo.png" 
             alt="WEEF Background" 
-            className="w-full h-full object-cover"
+            className="w-[120%] h-[120%] object-cover"
           />
         </div>
 
