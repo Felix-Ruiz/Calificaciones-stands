@@ -97,7 +97,7 @@ export default function StandDashboard() {
       "Apellidos": c.cliente.apellidos,
       "Institución": c.cliente.institucion,
       "Cargo": c.cliente.cargo,
-      "Teléfono": c.cliente.telefono || "No registrado", // SOLUCIÓN: Teléfono añadido
+      "Teléfono": c.cliente.telefono || "No registrado",
       "Correo": c.cliente.correo,
       "Estrellas": c.estrellas || "N/A",
       "Comentario": c.comentario
@@ -108,37 +108,65 @@ export default function StandDashboard() {
     XLSX.writeFile(workbook, `Calificaciones_${user?.name}.xlsx`);
   };
 
+  // ==========================================
+  // IMPRIMIR QR (SOLUCIÓN: 1 HOJA, SIN FECHAS)
+  // ==========================================
   const imprimirQR = async () => {
     if (!qrCodeInstance.current) return;
     
+    // Lo escalamos en segundo plano a altísima calidad antes de imprimir
+    qrCodeInstance.current.update({ width: 1000, height: 1000 });
     const blob = await qrCodeInstance.current.getRawData("png");
+    
+    // Lo regresamos a su tamaño original para el modal
+    qrCodeInstance.current.update({ width: 300, height: 300 });
+    
     if (!blob) return;
 
     const imgUrl = URL.createObjectURL(blob as Blob);
-
-    const printWindow = window.open('', '', 'width=800,height=800');
+    const printWindow = window.open('', '', 'width=1000,height=1000');
+    
     if (printWindow) {
       printWindow.document.write(`
+        <!DOCTYPE html>
         <html>
           <head>
             <title>Imprimir QR - ${user?.name}</title>
             <style>
-              body { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; margin:0; font-family:sans-serif; text-align:center; }
-              .qr-container { padding: 20px; border: 4px solid #c81474; border-radius: 20px; margin-top: 10px; }
-              img { width: 300px; height: 300px; object-fit: contain; }
-              h1 { font-size: 32px; margin: 0 0 10px 0; }
-              p { font-size: 18px; color: #666; margin-top: 20px; }
+              /* ESTO BORRA LA FECHA, LA HORA Y LA URL DEL NAVEGADOR */
+              @page { size: auto; margin: 0mm; } 
+              body { 
+                display: flex; 
+                flex-direction: column; 
+                align-items: center; 
+                justify-content: center; 
+                height: 100vh; 
+                margin: 0; 
+                padding: 20px;
+                box-sizing: border-box;
+                font-family: Arial, sans-serif; 
+                text-align: center; 
+                background: white; 
+              }
+              .qr-container { 
+                padding: 30px; 
+                border: 6px solid #c81474; 
+                border-radius: 30px; 
+                margin: 30px 0; 
+                background: white;
+              }
+              img { width: 500px; height: 500px; object-fit: contain; }
+              h1 { font-size: 50px; margin: 0; color: #000; font-weight: 900; text-transform: uppercase; }
+              p { font-size: 26px; color: #333; margin: 0; font-weight: bold; }
             </style>
           </head>
           <body>
             <h1>${user?.name}</h1>
-            <div class="qr-container">
-              <img src="${imgUrl}" alt="QR Code" />
-            </div>
+            <div class="qr-container"><img src="${imgUrl}" alt="QR Code" /></div>
             <p>Escanea este código para calificar nuestro stand</p>
             <script>
               window.onload = function() {
-                setTimeout(() => { window.print(); window.close(); }, 500);
+                setTimeout(() => { window.print(); window.close(); }, 800);
               }
             </script>
           </body>
@@ -190,7 +218,6 @@ export default function StandDashboard() {
             </div>
           </div>
 
-          {/* Botón QR modificado para el color c81474 */}
           <button onClick={() => setQrModalOpen(true)} className="group relative bg-linear-to-br from-[#c81474] to-pink-700 rounded-3xl p-8 flex flex-col justify-center items-center hover:from-[#a61060] hover:to-pink-600 transition-all shadow-[0_0_30px_rgba(200,20,116,0.3)] overflow-hidden">
             <div className="bg-white p-2 rounded-xl mb-4 relative z-10 overflow-hidden flex justify-center items-center min-w-20 min-h-20" ref={smallQrRef}>
             </div>
@@ -252,7 +279,6 @@ export default function StandDashboard() {
         </div>
       </main>
 
-      {/* MODAL DE DETALLES DEL VISITANTE */}
       <AnimatePresence>
         {isClienteModalOpen && selectedCliente && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
@@ -277,7 +303,6 @@ export default function StandDashboard() {
         )}
       </AnimatePresence>
 
-      {/* MODAL DEL QR */}
       <AnimatePresence>
         {qrModalOpen && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4">

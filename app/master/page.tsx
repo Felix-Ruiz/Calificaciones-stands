@@ -17,7 +17,6 @@ export default function MasterDashboard() {
   const [mensaje, setMensaje] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   
-  // SISTEMA DE TEMA (Modo Claro / Oscuro)
   const [theme, setTheme] = useState<"dark" | "light">("dark");
 
   const [standsList, setStandsList] = useState<any[]>([]);
@@ -229,11 +228,13 @@ export default function MasterDashboard() {
     setTimeout(() => setMensaje(""), 3000);
   };
 
-  // IMPRIMIR QR (Actualizado para mostrarse gigante y sin encabezados)
+  // ==========================================
+  // IMPRIMIR QR (SOLUCIÓN: 1 HOJA, SIN FECHAS)
+  // ==========================================
   const imprimirQRDesdeMaster = async (s: any) => {
     const url = `${window.location.origin}/calificar/${s.id}`;
     const qrCode = new QRCodeStyling({
-      width: 800, height: 800, data: url, image: s.logo || undefined,
+      width: 1000, height: 1000, data: url, image: s.logo || undefined,
       dotsOptions: { type: "dots", gradient: { type: "linear", rotation: Math.PI / 4, colorStops: [{ offset: 0, color: "#c81474" }, { offset: 1, color: "#5b21b6" }] } },
       cornersSquareOptions: { type: "dot", color: "#c81474" },
       cornersDotOptions: { type: "dot", color: "#c81474" },
@@ -246,24 +247,47 @@ export default function MasterDashboard() {
     const printWindow = window.open('', '', 'width=1000,height=1000');
     if (printWindow) {
       printWindow.document.write(`
+        <!DOCTYPE html>
         <html>
           <head>
-            <title>Imprimir QR - ${s.nombreStand}</title>
+            <title>QR Stand</title>
             <style>
-              /* Oculta la fecha y el "about:blank" al imprimir */
-              @page { size: auto; margin: 0mm; }
-              body { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; margin:0; font-family:sans-serif; text-align:center; background: white;}
-              .qr-container { padding: 40px; border: 8px solid #c81474; border-radius: 40px; margin-top: 20px; background: white;}
-              img { width: 600px; height: 600px; object-fit: contain; }
-              h1 { font-size: 60px; margin: 0 0 10px 0; color: #000; font-weight: 900; text-transform: uppercase;}
-              p { font-size: 24px; color: #666; margin-top: 30px; font-weight: bold;}
+              /* ESTO BORRA LA FECHA, LA HORA Y LA URL DEL NAVEGADOR */
+              @page { size: auto; margin: 0mm; } 
+              body { 
+                display: flex; 
+                flex-direction: column; 
+                align-items: center; 
+                justify-content: center; 
+                height: 100vh; 
+                margin: 0; 
+                padding: 20px;
+                box-sizing: border-box;
+                font-family: Arial, sans-serif; 
+                text-align: center; 
+                background: white; 
+              }
+              .qr-container { 
+                padding: 30px; 
+                border: 6px solid #c81474; 
+                border-radius: 30px; 
+                margin: 30px 0; 
+                background: white;
+              }
+              img { width: 500px; height: 500px; object-fit: contain; }
+              h1 { font-size: 50px; margin: 0; color: #000; font-weight: 900; text-transform: uppercase; }
+              p { font-size: 26px; color: #333; margin: 0; font-weight: bold; }
             </style>
           </head>
           <body>
             <h1>${s.nombreStand}</h1>
             <div class="qr-container"><img src="${imgUrl}" alt="QR" /></div>
-            <p>Escanea este código con tu cámara para calificar el stand</p>
-            <script>window.onload = function() { setTimeout(() => { window.print(); window.close(); }, 800); }</script>
+            <p>Escanea este código para calificar nuestro stand</p>
+            <script>
+              window.onload = function() { 
+                setTimeout(() => { window.print(); window.close(); }, 800); 
+              }
+            </script>
           </body>
         </html>
       `);
@@ -369,9 +393,7 @@ export default function MasterDashboard() {
   const exportarClientesExcel = () => {
     const data = clientesList.map((c: any) => ({ 
       "Nombres": c.nombres, "Apellidos": c.apellidos, "Documento": c.username, 
-      "Institución": c.institucion, "Cargo": c.cargo, 
-      "Teléfono": c.telefono, // <-- Teléfono incluido aquí
-      "Correo": c.correo,
+      "Institución": c.institucion, "Cargo": c.cargo, "Teléfono": c.telefono, "Correo": c.correo,
       "Stands Calificados": c._count.calificacionesDadas
     }));
     const ws = XLSX.utils.json_to_sheet(data);
@@ -520,7 +542,7 @@ export default function MasterDashboard() {
                             <div className="flex justify-end space-x-2">
                               <button onClick={() => copiarDatosLogin(s)} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-white" : "text-gray-500 bg-gray-100 hover:text-gray-900"}`} title="Copiar Datos Login"><Copy className="w-4 h-4" /></button>
                               <a href={`/calificar/${s.id}`} target="_blank" rel="noopener noreferrer" className={`p-2 rounded-lg transition-colors flex items-center justify-center ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-green-400" : "text-gray-500 bg-gray-100 hover:text-green-600"}`} title="Link Calificar"><ExternalLink className="w-4 h-4" /></a>
-                              <button onClick={() => imprimirQRDesdeMaster(s)} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-[#c81474]" : "text-gray-500 bg-gray-100 hover:text-[#c81474]"}`} title="Imprimir QR Prémium"><Printer className="w-4 h-4" /></button>
+                              <button onClick={() => imprimirQRDesdeMaster(s)} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-[#c81474]" : "text-gray-500 bg-gray-100 hover:text-[#c81474]"}`} title="Imprimir QR"><Printer className="w-4 h-4" /></button>
                               <button onClick={() => abrirDetalles(s, "STAND")} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-[#c81474]" : "text-gray-500 bg-gray-100 hover:text-[#c81474]"}`} title="Ver Comentarios"><Eye className="w-4 h-4" /></button>
                               <button onClick={() => { setEditingStand(s); setIsEditStandModalOpen(true); }} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-blue-400" : "text-gray-500 bg-gray-100 hover:text-blue-600"}`} title="Editar"><Edit className="w-4 h-4" /></button>
                               <button onClick={() => handleEliminarStand(s.id, s.nombreStand)} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-red-400" : "text-gray-500 bg-gray-100 hover:text-red-600"}`} title="Eliminar"><Trash2 className="w-4 h-4" /></button>
@@ -739,7 +761,6 @@ export default function MasterDashboard() {
                 </h1>
                 
                 <div className="space-y-8">
-                  {/* SELECTOR DE TEMA CLARO/OSCURO */}
                   <div className={`flex items-center justify-between p-4 rounded-2xl border ${isDark ? "bg-black/30 border-neutral-800" : "bg-gray-50 border-gray-200"}`}>
                     <div>
                       <h3 className="font-bold text-lg">Apariencia del Panel</h3>
@@ -778,7 +799,7 @@ export default function MasterDashboard() {
       </main>
 
       {/* ==================================================== */}
-      {/* MODALES DEL SISTEMA (Con Clic por fuera para cerrar) */}
+      {/* MODALES DEL SISTEMA */}
       {/* ==================================================== */}
       
       <AnimatePresence>
