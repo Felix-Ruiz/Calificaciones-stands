@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { signOut } from "next-auth/react";
-import { Users, Store, Gift, Settings, LogOut, Upload, Star, Trophy, History, Play, Plus, X, Eye, MessageSquare, Edit, Trash2, Download, ExternalLink, Printer, Copy, Menu, Maximize, AlertTriangle, Search, Sun, Moon, Globe } from "lucide-react";
+import { Users, Store, Gift, Settings, LogOut, Upload, Star, Trophy, History, Play, Plus, X, Eye, MessageSquare, Edit, Trash2, Download, ExternalLink, Printer, Copy, ChevronRight, ChevronLeft, Maximize, AlertTriangle, Search, Sun, Moon, Globe } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import * as XLSX from "xlsx";
 import QRCodeStyling from "qr-code-styling";
@@ -15,8 +15,11 @@ export default function MasterDashboard() {
   const [activeTab, setActiveTab] = useState("stands");
   const [loading, setLoading] = useState(false);
   const [mensaje, setMensaje] = useState("");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   
+  // ESTADO DEL MENÚ MÓVIL (En Desktop usa CSS Hover)
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  
+  // ESTADOS DE TEMA E IDIOMA
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [language, setLanguage] = useState<"en" | "es">("en");
 
@@ -417,50 +420,108 @@ export default function MasterDashboard() {
   ];
 
   return (
-    <div className={`min-h-screen flex transition-colors duration-300 ${isDark ? "bg-neutral-950 text-white" : "bg-gray-50 text-gray-900"}`}>
-      <AnimatePresence>
-        {sidebarOpen && (
-          <motion.aside initial={{ width: 0, opacity: 0 }} animate={{ width: 256, opacity: 1 }} exit={{ width: 0, opacity: 0 }} className={`border-r p-6 flex flex-col z-20 shadow-2xl overflow-hidden shrink-0 ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-gray-200"}`}>
-            <div className="mb-10 flex justify-between items-center whitespace-nowrap">
-              <h2 className={`text-2xl font-black tracking-widest uppercase ${isDark ? "text-transparent bg-clip-text bg-linear-to-r from-yellow-400 to-[#c81474]" : "text-[#c81474]"}`}>
-                {t("Panel Master", "Master Panel")}
-              </h2>
+    <div className={`h-screen flex overflow-hidden transition-colors duration-300 ${isDark ? "bg-neutral-950 text-white" : "bg-gray-50 text-gray-900"}`}>
+      
+      {/* ==================================================== */}
+      {/* MENÚ LATERAL (AUTOCOLLAPSABLE EN DESKTOP / ARROW EN MÓVIL) */}
+      {/* ==================================================== */}
+      <aside 
+        className={`fixed md:relative z-50 h-full flex flex-col border-r shadow-2xl transition-all duration-300 ease-in-out group 
+        ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-gray-200"} 
+        ${sidebarOpen ? "translate-x-0 w-64" : "-translate-x-full md:translate-x-0 md:w-20 md:hover:w-64"}`}
+      >
+        {/* Flechita para abrir/cerrar en Móvil */}
+        <button 
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className={`md:hidden absolute top-6 -right-12 w-12 h-14 flex items-center justify-center rounded-r-xl shadow-lg border-y border-r transition-colors z-50 ${isDark ? "bg-neutral-900 border-neutral-800 text-[#c81474]" : "bg-white border-gray-200 text-[#c81474]"}`}
+        >
+          {sidebarOpen ? <ChevronLeft className="w-6 h-6"/> : <ChevronRight className="w-6 h-6"/>}
+        </button>
+
+        {/* LOGO EN VEZ DE TEXTO */}
+        <div className="h-24 flex items-center justify-center shrink-0 border-b border-transparent overflow-hidden px-4">
+          <img 
+            src="/logo.png" 
+            alt="Logo" 
+            className={`object-contain transition-all duration-300 ${sidebarOpen ? "w-20 h-20" : "md:w-10 md:h-10 md:group-hover:w-20 md:group-hover:h-20"}`} 
+          />
+        </div>
+
+        {/* NAVEGACIÓN */}
+        <nav className="flex-1 space-y-2 px-3 py-6 overflow-y-auto overflow-x-hidden" style={{ scrollbarWidth: "none" }}>
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button 
+                key={tab.id} 
+                onClick={() => { setActiveTab(tab.id); setSidebarOpen(false); }} 
+                className={`relative w-full flex items-center p-3 rounded-xl transition-all overflow-hidden font-bold
+                ${isActive ? "bg-[#c81474] text-white shadow-lg" : (isDark ? "hover:bg-neutral-800 text-neutral-400 hover:text-white" : "hover:bg-gray-100 text-gray-600 hover:text-[#c81474]")}`}
+              >
+                <div className="w-10 flex justify-center shrink-0">
+                  <Icon className="w-6 h-6" />
+                </div>
+                <span className={`whitespace-nowrap transition-all duration-300 ${sidebarOpen ? "opacity-100 ml-2" : "md:opacity-0 md:group-hover:opacity-100 md:ml-2"}`}>
+                  {tab.label}
+                </span>
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* BOTÓN SALIR */}
+        <div className="p-3 shrink-0 mb-4">
+          <button 
+            onClick={() => signOut({ callbackUrl: "/login" })} 
+            className={`relative w-full flex items-center p-3 rounded-xl transition-colors font-bold overflow-hidden
+            ${isDark ? "hover:bg-red-500/10 text-red-500" : "hover:bg-red-50 text-red-600"}`}
+          >
+            <div className="w-10 flex justify-center shrink-0">
+              <LogOut className="w-6 h-6" />
             </div>
-            <nav className="flex-1 space-y-3 w-52">
-              {tabs.map((tab) => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.id;
-                return (
-                  <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`w-full flex items-center space-x-4 px-5 py-4 rounded-xl transition-all font-bold ${isActive ? "bg-[#c81474] text-white shadow-lg" : (isDark ? "hover:bg-neutral-800 text-neutral-400 hover:text-white" : "hover:bg-gray-100 text-gray-600 hover:text-[#c81474]")}`}>
-                    <Icon className="w-5 h-5" /><span>{tab.label}</span>
-                  </button>
-                );
-              })}
-            </nav>
-            <button onClick={() => signOut({ callbackUrl: "/login" })} className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all mt-auto font-bold w-52 ${isDark ? "hover:bg-red-500/10 text-red-500" : "hover:bg-red-50 text-red-600"}`}>
-              <LogOut className="w-5 h-5" /><span>{t("Cerrar Sesión", "Sign Out")}</span>
-            </button>
-          </motion.aside>
-        )}
-      </AnimatePresence>
+            <span className={`whitespace-nowrap transition-all duration-300 ${sidebarOpen ? "opacity-100 ml-2" : "md:opacity-0 md:group-hover:opacity-100 md:ml-2"}`}>
+              {t("Cerrar Sesión", "Sign Out")}
+            </span>
+          </button>
+        </div>
+      </aside>
 
-      <main className="flex-1 p-8 overflow-y-auto relative h-screen">
-        {isDark && <div className="absolute top-0 left-1/2 -translate-x-1/2 w-250 h-125 bg-[#c81474]/10 rounded-full blur-[150px] pointer-events-none" />}
+      {/* ==================================================== */}
+      {/* CONTENIDO PRINCIPAL Y MARCA DE AGUA */}
+      {/* ==================================================== */}
+      <main className="flex-1 h-full overflow-y-auto relative flex flex-col p-6 md:p-10">
+        
+        {/* LOGO DE FONDO (MARCA DE AGUA GLOBAL) */}
+        <div className={`absolute inset-0 z-0 flex justify-center items-center pointer-events-none ${isDark ? "opacity-10" : "opacity-[0.03]"}`}>
+          <img src="/logo.png" alt="WEEF Background" className="w-[80%] h-[80%] object-contain" />
+        </div>
 
-        <div className="relative z-10">
-          <div className="flex items-center mb-6 space-x-4">
-            <button onClick={() => setSidebarOpen(!sidebarOpen)} className={`p-2 rounded-lg transition-colors ${isDark ? "bg-neutral-800 hover:bg-neutral-700 text-white" : "bg-white border border-gray-200 hover:bg-gray-100 text-gray-700"}`}>
-              <Menu className="w-6 h-6" />
-            </button>
+        {/* CABECERA TOP-RIGHT (Botones globales) */}
+        <div className="flex justify-between items-start mb-8 relative z-10 w-full min-h-12">
+          {/* Mensajes de Alerta a la izquierda */}
+          <div className="flex-1 max-w-md">
             <AnimatePresence>
               {mensaje && (
-                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className={`flex-1 p-3 rounded-xl font-bold text-center shadow-lg ${isDark ? "bg-neutral-900 border border-[#c81474] text-[#c81474]" : "bg-green-50 border border-green-200 text-green-700"}`}>
+                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className={`p-3 rounded-xl font-bold text-center shadow-lg ${isDark ? "bg-neutral-900 border border-[#c81474] text-[#c81474]" : "bg-green-50 border border-green-200 text-green-700"}`}>
                   {mensaje}
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
 
+          {/* Botones Tema/Idioma a la derecha */}
+          <div className="flex items-center space-x-3 shrink-0 ml-4">
+            <button onClick={toggleLanguage} className={`p-2.5 rounded-full transition-colors shadow-sm border ${isDark ? "bg-neutral-900 border-[#c81474]/50 text-[#c81474] hover:bg-neutral-800" : "bg-white border-[#c81474]/30 text-[#c81474] hover:bg-gray-100"}`} title={t("Cambiar Idioma", "Change Language")}>
+              <Globe className="w-5 h-5" />
+            </button>
+            <button onClick={toggleTheme} className={`p-2.5 rounded-full transition-colors shadow-sm border ${isDark ? "bg-neutral-900 border-[#c81474]/50 text-yellow-400 hover:bg-neutral-800" : "bg-white border-[#c81474]/30 text-yellow-500 hover:bg-gray-100"}`} title={t("Cambiar Tema", "Toggle Theme")}>
+              {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
+          </div>
+        </div>
+
+        <div className="relative z-10 flex-1">
           {/* STANDS */}
           {activeTab === "stands" && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
@@ -489,7 +550,7 @@ export default function MasterDashboard() {
                   placeholder={t("Buscar stand por nombre o usuario...", "Search stand by name or user...")}
                   value={searchStand}
                   onChange={(e) => { setSearchStand(e.target.value); setPageStands(1); }}
-                  className={`w-full pl-12 pr-4 py-3 rounded-xl focus:outline-none focus:border-[#c81474] transition-colors shadow-inner ${isDark ? "bg-neutral-900 border border-neutral-700 text-white" : "bg-white border border-gray-300 text-gray-900"}`}
+                  className={`w-full pl-12 pr-4 py-3 rounded-xl focus:outline-none focus:border-[#c81474] transition-colors shadow-inner ${isDark ? "bg-neutral-900 border border-neutral-700 text-white" : "bg-white/80 backdrop-blur-md border border-gray-300 text-gray-900"}`}
                 />
               </div>
 
@@ -505,7 +566,7 @@ export default function MasterDashboard() {
                 </button>
               </div>
 
-              <div className={`border rounded-2xl overflow-hidden shadow-xl ${isDark ? "bg-neutral-900/80 backdrop-blur-md border-neutral-800" : "bg-white border-gray-200"}`}>
+              <div className={`border rounded-2xl overflow-hidden shadow-xl ${isDark ? "bg-neutral-900/80 backdrop-blur-md border-neutral-800" : "bg-white/90 backdrop-blur-md border-gray-200"}`}>
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className={`border-b ${isDark ? "bg-black/50 border-neutral-800 text-neutral-300" : "bg-gray-50 border-gray-200 text-gray-600"}`}>
@@ -543,7 +604,7 @@ export default function MasterDashboard() {
                   </tbody>
                 </table>
               </div>
-              <div className="flex justify-between items-center mt-4">
+              <div className="flex justify-between items-center mt-4 pb-10">
                 <button disabled={pageStands === 1} onClick={() => setPageStands(pageStands - 1)} className={`px-4 py-2 border rounded-lg text-sm font-bold disabled:opacity-50 transition-colors ${isDark ? "bg-neutral-900 border-neutral-700 text-white hover:bg-neutral-800" : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"}`}>{t("Anterior", "Previous")}</button>
                 <span className={`text-sm ${isDark ? "text-neutral-400" : "text-gray-500"}`}>{t("Página", "Page")} {pageStands} {t("de", "of")} {totalPagesStands || 1}</span>
                 <button disabled={pageStands === totalPagesStands || totalPagesStands === 0} onClick={() => setPageStands(pageStands + 1)} className={`px-4 py-2 border rounded-lg text-sm font-bold disabled:opacity-50 transition-colors ${isDark ? "bg-neutral-900 border-neutral-700 text-white hover:bg-neutral-800" : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"}`}>{t("Siguiente", "Next")}</button>
@@ -579,7 +640,7 @@ export default function MasterDashboard() {
                   placeholder={t("Buscar visitante por nombre, documento o institución...", "Search visitor by name, document or institution...")}
                   value={searchCliente}
                   onChange={(e) => { setSearchCliente(e.target.value); setPageClientes(1); }}
-                  className={`w-full pl-12 pr-4 py-3 rounded-xl focus:outline-none focus:border-[#c81474] transition-colors shadow-inner ${isDark ? "bg-neutral-900 border border-neutral-700 text-white" : "bg-white border border-gray-300 text-gray-900"}`}
+                  className={`w-full pl-12 pr-4 py-3 rounded-xl focus:outline-none focus:border-[#c81474] transition-colors shadow-inner ${isDark ? "bg-neutral-900 border border-neutral-700 text-white" : "bg-white/80 backdrop-blur-md border border-gray-300 text-gray-900"}`}
                 />
               </div>
 
@@ -595,7 +656,7 @@ export default function MasterDashboard() {
                 </button>
               </div>
 
-              <div className={`border rounded-2xl overflow-hidden shadow-xl ${isDark ? "bg-neutral-900/80 backdrop-blur-md border-neutral-800" : "bg-white border-gray-200"}`}>
+              <div className={`border rounded-2xl overflow-hidden shadow-xl ${isDark ? "bg-neutral-900/80 backdrop-blur-md border-neutral-800" : "bg-white/90 backdrop-blur-md border-gray-200"}`}>
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className={`border-b ${isDark ? "bg-black/50 border-neutral-800 text-neutral-300" : "bg-gray-50 border-gray-200 text-gray-600"}`}>
@@ -633,7 +694,7 @@ export default function MasterDashboard() {
                   </tbody>
                 </table>
               </div>
-              <div className="flex justify-between items-center mt-4">
+              <div className="flex justify-between items-center mt-4 pb-10">
                 <button disabled={pageClientes === 1} onClick={() => setPageClientes(pageClientes - 1)} className={`px-4 py-2 border rounded-lg text-sm font-bold disabled:opacity-50 transition-colors ${isDark ? "bg-neutral-900 border-neutral-700 text-white hover:bg-neutral-800" : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"}`}>{t("Anterior", "Previous")}</button>
                 <span className={`text-sm ${isDark ? "text-neutral-400" : "text-gray-500"}`}>{t("Página", "Page")} {pageClientes} {t("de", "of")} {totalPagesClientes || 1}</span>
                 <button disabled={pageClientes === totalPagesClientes || totalPagesClientes === 0} onClick={() => setPageClientes(pageClientes + 1)} className={`px-4 py-2 border rounded-lg text-sm font-bold disabled:opacity-50 transition-colors ${isDark ? "bg-neutral-900 border-neutral-700 text-white hover:bg-neutral-800" : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"}`}>{t("Siguiente", "Next")}</button>
@@ -643,7 +704,7 @@ export default function MasterDashboard() {
 
           {/* SORTEO */}
           {activeTab === "sorteo" && (
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center justify-center min-h-[80vh]">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center justify-center min-h-[70vh]">
               <div className="text-center mb-6">
                 <h1 className={`text-5xl font-black text-transparent bg-clip-text uppercase tracking-widest drop-shadow-sm ${isDark ? "bg-linear-to-r from-yellow-400 to-[#c81474]" : "bg-linear-to-r from-[#c81474] to-pink-500"}`}>
                   {t("Sorteo de Reconocimientos", "Awards Draw")}
@@ -658,7 +719,7 @@ export default function MasterDashboard() {
                 <Maximize className="w-5 h-5" /> <span>{t("Proyectar en Pantalla Completa", "Project Full Screen")}</span>
               </button>
 
-              <div id="sorteo-container" className={`relative w-full max-w-4xl min-h-112.5 py-12 px-6 border-2 shadow-2xl flex flex-col justify-center items-center overflow-hidden mb-12 rounded-[3rem] [&:fullscreen]:rounded-none [&:fullscreen]:border-none [&:fullscreen]:max-w-none [&:fullscreen]:w-screen [&:fullscreen]:h-screen [&:fullscreen]:flex [&:fullscreen]:items-center [&:fullscreen]:justify-center ${isDark ? "bg-neutral-950/90 backdrop-blur-3xl border-neutral-800 shadow-[inset_0_0_100px_rgba(0,0,0,0.8)] [&:fullscreen]:bg-neutral-950" : "bg-white border-gray-100 [&:fullscreen]:bg-white"}`}>
+              <div id="sorteo-container" className={`relative w-full max-w-4xl min-h-112.5 py-12 px-6 border-2 shadow-2xl flex flex-col justify-center items-center overflow-hidden mb-12 rounded-[3rem] [&:fullscreen]:rounded-none [&:fullscreen]:border-none [&:fullscreen]:max-w-none [&:fullscreen]:w-screen [&:fullscreen]:h-screen [&:fullscreen]:flex [&:fullscreen]:items-center [&:fullscreen]:justify-center ${isDark ? "bg-neutral-950/90 backdrop-blur-3xl border-neutral-800 shadow-[inset_0_0_100px_rgba(0,0,0,0.8)] [&:fullscreen]:bg-neutral-950" : "bg-white/90 backdrop-blur-3xl border-gray-100 [&:fullscreen]:bg-white"}`}>
                 <div className={`absolute inset-0 bg-[conic-gradient(from_90deg,transparent,rgba(200,20,116,0.2),transparent)] ${isSpinning ? 'animate-spin' : ''} duration-3000 pointer-events-none`} />
 
                 {!isSpinning && !winner && (
@@ -683,7 +744,7 @@ export default function MasterDashboard() {
                     <h2 className={`text-4xl md:text-7xl font-black uppercase tracking-tighter mb-2 leading-tight ${isDark ? "text-white" : "text-gray-900"}`}>
                       {winner.nombres} {winner.apellidos}
                     </h2>
-                    <p className={`text-2xl md:text-4xl font-mono tracking-widest mb-4 ${isDark ? "text-purple-400" : "text-gray-500"}`}>
+                    <p className={`text-2xl md:text-4xl font-mono tracking-widest mb-4 ${isDark ? "text-purple-400" : "text-gray-600"}`}>
                       CC: {winner.username}
                     </p>
                     <p className="text-xl md:text-3xl text-[#c81474] font-bold uppercase tracking-widest">
@@ -706,12 +767,12 @@ export default function MasterDashboard() {
                 <p className={`font-bold mt-1 ${isDark ? "text-neutral-400" : "text-gray-500"}`}>{t("Total Entregados:", "Total Awarded:")} {historialPremios.length}</p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-10">
                 {historialPremios.length === 0 ? (
                   <p className={`col-span-full text-center py-10 ${isDark ? "text-neutral-500" : "text-gray-400"}`}>{t("Aún no hay sorteos registrados.", "No draws registered yet.")}</p>
                 ) : (
                   historialPremios.map((premio: any) => (
-                    <div key={premio.id} onClick={() => abrirDetalles(premio.cliente, "GANADOR")} className={`border p-6 rounded-3xl cursor-pointer transition-all hover:border-[#c81474] hover:shadow-xl group relative overflow-hidden ${isDark ? "bg-neutral-900/80 border-neutral-800" : "bg-white border-gray-200"}`}>
+                    <div key={premio.id} onClick={() => abrirDetalles(premio.cliente, "GANADOR")} className={`border p-6 rounded-3xl cursor-pointer transition-all hover:border-[#c81474] hover:shadow-xl group relative overflow-hidden ${isDark ? "bg-neutral-900/80 backdrop-blur-md border-neutral-800" : "bg-white/90 backdrop-blur-md border-gray-200"}`}>
                       
                       <button 
                         onClick={(e) => handleEliminarGanador(e, premio.id, `${premio.cliente.nombres} ${premio.cliente.apellidos}`)}
@@ -741,34 +802,13 @@ export default function MasterDashboard() {
 
           {/* AJUSTES */}
           {activeTab === "ajustes" && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl mx-auto mt-10">
-              <div className={`border p-10 rounded-3xl shadow-xl ${isDark ? "bg-neutral-900/80 backdrop-blur-xl border-neutral-800" : "bg-white border-gray-200"}`}>
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl mx-auto mt-4">
+              <div className={`border p-10 rounded-3xl shadow-xl ${isDark ? "bg-neutral-900/80 backdrop-blur-xl border-neutral-800" : "bg-white/90 backdrop-blur-md border-gray-200"}`}>
                 <h1 className={`text-3xl font-black uppercase mb-8 flex items-center border-b pb-4 ${isDark ? "border-neutral-800" : "border-gray-200"}`}>
                   <Settings className="w-8 h-8 mr-4 text-[#c81474]" /> {t("Configuración Global", "Global Settings")}
                 </h1>
                 
                 <div className="space-y-8">
-                  
-                  <div className={`flex items-center justify-between p-4 rounded-2xl border ${isDark ? "bg-black/30 border-neutral-800" : "bg-gray-50 border-gray-200"}`}>
-                    <div>
-                      <h3 className="font-bold text-lg">{t("Idioma del Sistema", "System Language")}</h3>
-                      <p className={`text-sm ${isDark ? "text-neutral-400" : "text-gray-500"}`}>{t("Cambiar entre Español e Inglés.", "Switch between Spanish and English.")}</p>
-                    </div>
-                    <button onClick={toggleLanguage} className={`p-3 rounded-xl transition-all shadow-md flex items-center space-x-2 font-bold ${isDark ? "bg-white text-neutral-900 hover:bg-gray-200" : "bg-neutral-900 text-white hover:bg-neutral-800"}`}>
-                      <Globe className="w-5 h-5"/> <span>{language === "en" ? "Español" : "English"}</span>
-                    </button>
-                  </div>
-
-                  <div className={`flex items-center justify-between p-4 rounded-2xl border ${isDark ? "bg-black/30 border-neutral-800" : "bg-gray-50 border-gray-200"}`}>
-                    <div>
-                      <h3 className="font-bold text-lg">{t("Apariencia del Panel", "Panel Appearance")}</h3>
-                      <p className={`text-sm ${isDark ? "text-neutral-400" : "text-gray-500"}`}>{t("Activar modo claro o oscuro para la interfaz.", "Enable light or dark mode for the interface.")}</p>
-                    </div>
-                    <button onClick={toggleTheme} className={`p-3 rounded-xl transition-all shadow-md flex items-center space-x-2 font-bold ${isDark ? "bg-white text-neutral-900 hover:bg-gray-200" : "bg-neutral-900 text-white hover:bg-neutral-800"}`}>
-                      {isDark ? <><Sun className="w-5 h-5"/> <span>{t("Modo Claro", "Light Mode")}</span></> : <><Moon className="w-5 h-5"/> <span>{t("Modo Oscuro", "Dark Mode")}</span></>}
-                    </button>
-                  </div>
-
                   <div className={`flex items-center justify-between p-4 rounded-2xl border ${isDark ? "bg-black/30 border-neutral-800" : "bg-gray-50 border-gray-200"}`}>
                     <div>
                       <h3 className="font-bold text-lg">{t("Calificación por Estrellas", "Star Rating")}</h3>
@@ -783,7 +823,7 @@ export default function MasterDashboard() {
                   <div className={`p-4 rounded-2xl border ${isDark ? "bg-black/30 border-neutral-800" : "bg-gray-50 border-gray-200"}`}>
                     <h3 className="font-bold text-lg mb-2">{t("Requisito para Participación", "Participation Requirement")}</h3>
                     <p className={`text-sm mb-4 ${isDark ? "text-neutral-400" : "text-gray-500"}`}>{t("¿Cuántos stands debe calificar un visitante para entrar al sorteo?", "How many stands must a visitor rate to enter the draw?")}</p>
-                    <input type="number" min="1" value={ajustes.requiredStandsForLottery} onChange={(e) => setAjustes({...ajustes, requiredStandsForLottery: Number(e.target.value)})} className={`w-full rounded-xl p-4 text-2xl font-bold text-center focus:outline-none focus:border-[#c81474] transition-colors shadow-inner border ${isDark ? "bg-neutral-950 border-neutral-700 text-white" : "bg-white border-gray-300 text-gray-900"}`} />
+                    <input type="number" min="1" value={ajustes.requiredStandsForLottery} onChange={(e) => setAjustes({...ajustes, requiredStandsForLottery: Number(e.target.value)})} className={`w-full rounded-xl p-4 text-2xl font-bold text-center focus:outline-none focus:border-[#c81474] transition-colors shadow-inner border ${isDark ? "bg-neutral-950/80 border-neutral-700 text-white" : "bg-white border-gray-300 text-gray-900"}`} />
                   </div>
                   
                   <button onClick={guardarConfiguracion} disabled={loading} className="w-full py-4 bg-[#c81474] hover:bg-[#a61060] text-white font-black text-lg uppercase tracking-widest rounded-xl transition-all shadow-lg disabled:opacity-50">
@@ -796,7 +836,9 @@ export default function MasterDashboard() {
         </div>
       </main>
 
-      {/* MODALES DEL MASTER */}
+      {/* ==================================================== */}
+      {/* MODALES GLOBALES */}
+      {/* ==================================================== */}
       <AnimatePresence>
         {confirmDialog.isOpen && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-100 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}>
@@ -816,7 +858,7 @@ export default function MasterDashboard() {
       <AnimatePresence>
         {isModalStandOpen && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => { setIsModalStandOpen(false); setLogoBase64(null); }}>
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className={`border rounded-3xl p-8 max-w-md w-full shadow-2xl relative ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-gray-200"}`} onClick={(e) => e.stopPropagation()}>
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className={`border rounded-3xl p-8 max-w-md w-full shadow-2xl relative ${isDark ? "bg-neutral-900 border-[#c81474]" : "bg-white border-[#c81474]"}`} onClick={(e) => e.stopPropagation()}>
               <button onClick={() => { setIsModalStandOpen(false); setLogoBase64(null); }} className={`absolute top-6 right-6 hover:text-[#c81474] ${isDark ? "text-neutral-500" : "text-gray-400"}`}><X className="w-6 h-6" /></button>
               <h2 className="text-2xl font-bold mb-2">{t("Agregar Stand Manual", "Add Manual Stand")}</h2>
               <form onSubmit={handleCrearStandManual} className="space-y-6 mt-6">
@@ -839,7 +881,7 @@ export default function MasterDashboard() {
       <AnimatePresence>
         {isEditStandModalOpen && editingStand && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setIsEditStandModalOpen(false)}>
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className={`border rounded-3xl p-8 max-w-md w-full shadow-2xl relative ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-gray-200"}`} onClick={(e) => e.stopPropagation()}>
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className={`border rounded-3xl p-8 max-w-md w-full shadow-2xl relative ${isDark ? "bg-neutral-900 border-[#c81474]" : "bg-white border-[#c81474]"}`} onClick={(e) => e.stopPropagation()}>
               <button onClick={() => setIsEditStandModalOpen(false)} className={`absolute top-6 right-6 hover:text-[#c81474] ${isDark ? "text-neutral-500" : "text-gray-400"}`}><X className="w-6 h-6" /></button>
               <h2 className="text-2xl font-bold mb-6">{t("Editar Stand", "Edit Stand")}</h2>
               <form onSubmit={guardarEdicionStand} className="space-y-4">
@@ -866,7 +908,7 @@ export default function MasterDashboard() {
       <AnimatePresence>
         {isEditClienteModalOpen && editingCliente && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setIsEditClienteModalOpen(false)}>
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className={`border rounded-3xl p-8 max-w-md w-full shadow-2xl relative max-h-[90vh] flex flex-col ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-gray-200"}`} onClick={(e) => e.stopPropagation()}>
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className={`border rounded-3xl p-8 max-w-md w-full shadow-2xl relative max-h-[90vh] flex flex-col ${isDark ? "bg-neutral-900 border-[#c81474]" : "bg-white border-[#c81474]"}`} onClick={(e) => e.stopPropagation()}>
               <button onClick={() => setIsEditClienteModalOpen(false)} className={`absolute top-6 right-6 hover:text-[#c81474] ${isDark ? "text-neutral-500" : "text-gray-400"}`}><X className="w-6 h-6" /></button>
               
               <h2 className="text-2xl font-bold mb-6 shrink-0">{t("Editar Visitante", "Edit Visitor")}</h2>
@@ -915,7 +957,7 @@ export default function MasterDashboard() {
       <AnimatePresence>
         {detallesAbiertos && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setDetallesAbiertos(false)}>
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className={`border rounded-3xl p-8 max-w-4xl w-full shadow-2xl relative max-h-[80vh] flex flex-col ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-gray-200"}`} onClick={(e) => e.stopPropagation()}>
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className={`border rounded-3xl p-8 max-w-4xl w-full shadow-2xl relative max-h-[80vh] flex flex-col ${isDark ? "bg-neutral-900 border-[#c81474]" : "bg-white border-[#c81474]"}`} onClick={(e) => e.stopPropagation()}>
               <button onClick={() => setDetallesAbiertos(false)} className={`absolute top-6 right-6 p-2 rounded-full transition-colors ${isDark ? "text-neutral-500 hover:text-white bg-neutral-800 hover:bg-neutral-700" : "text-gray-500 hover:text-gray-900 bg-gray-100 hover:bg-gray-200"}`}><X className="w-5 h-5" /></button>
               
               {tipoDetalle === "GANADOR" ? (
