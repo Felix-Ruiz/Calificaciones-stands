@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { getSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { LogOut, Star, CheckCircle, MapPin, Activity, Camera, X, Sun, Moon } from "lucide-react";
+import { LogOut, Star, CheckCircle, MapPin, Activity, Camera, X, Sun, Moon, Globe } from "lucide-react";
 import { obtenerEstadisticasCliente } from "@/actions/clienteDashboard";
 
 export default function ClienteDashboard() {
@@ -12,15 +12,28 @@ export default function ClienteDashboard() {
   const [estadisticas, setEstadisticas] = useState({ total: 0, historial: [] as any[] });
   const [loading, setLoading] = useState(true);
   
-  // Estados nuevos: Tema y Escáner
+  // Estados para Tema y Escáner
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [escanerAbierto, setEscanerAbierto] = useState(false);
+  
+  // ESTADO DE IDIOMA: Por defecto en Inglés
+  const [language, setLanguage] = useState<"en" | "es">("en");
+  
   const router = useRouter();
 
   useEffect(() => {
-    // Cargar preferencia de tema
+    // 1. Cargar Preferencia de Tema
     const savedTheme = localStorage.getItem("cliente-theme") as "dark" | "light";
     if (savedTheme) setTheme(savedTheme);
+
+    // 2. Cargar Preferencia de Idioma (Se lee de app-lang si viene del Login)
+    const savedLang = localStorage.getItem("app-lang") as "en" | "es";
+    if (savedLang) {
+      setLanguage(savedLang);
+    } else {
+      setLanguage("en");
+      localStorage.setItem("app-lang", "en");
+    }
 
     const fetchUserData = async () => {
       const session = await getSession();
@@ -40,7 +53,16 @@ export default function ClienteDashboard() {
     localStorage.setItem("cliente-theme", newTheme);
   };
 
+  const toggleLanguage = () => {
+    const newLang = language === "en" ? "es" : "en";
+    setLanguage(newLang);
+    localStorage.setItem("app-lang", newLang);
+  };
+
   const isDark = theme === "dark";
+  
+  // Función de traducción
+  const t = (es: string, en: string) => language === "en" ? en : es;
 
   // Lógica del Escáner Nativo Integrado (Inmediato)
   useEffect(() => {
@@ -65,7 +87,7 @@ export default function ClienteDashboard() {
             });
           },
           (err: any) => {
-            // Se ignoran los errores de búsqueda en tiempo real
+            // Se ignoran los errores constantes mientras busca el QR
           }
         ).catch((err: any) => {
           console.error("No se pudo iniciar la cámara:", err);
@@ -81,11 +103,12 @@ export default function ClienteDashboard() {
   }, [escanerAbierto, router]);
 
   if (loading) {
-    return <div className={`min-h-screen flex justify-center items-center font-bold ${isDark ? "bg-neutral-950 text-[#c81474]" : "bg-gray-50 text-[#c81474]"}`}>Cargando tu perfil...</div>;
+    return <div className={`min-h-screen flex justify-center items-center font-bold ${isDark ? "bg-neutral-950 text-[#c81474]" : "bg-gray-50 text-[#c81474]"}`}>{t("Cargando tu perfil...", "Loading your profile...")}</div>;
   }
 
   return (
     <div className={`min-h-screen flex flex-col relative overflow-hidden transition-colors duration-300 ${isDark ? "bg-neutral-950 text-white" : "bg-gray-50 text-gray-900"}`}>
+      
       {/* Luces de fondo (Solo en modo oscuro) */}
       {isDark && (
         <>
@@ -97,18 +120,22 @@ export default function ClienteDashboard() {
       {/* Navbar Móvil */}
       <header className={`px-6 py-4 flex justify-between items-center relative z-10 top-0 border-b ${isDark ? "bg-neutral-900/80 backdrop-blur-md border-[#c81474]/20" : "bg-white/90 backdrop-blur-md border-gray-200 shadow-sm"}`}>
         <div className="flex-1 mr-4">
-          <p className={`text-xs tracking-widest uppercase font-bold ${isDark ? "text-neutral-400" : "text-gray-500"}`}>Visitante VIP</p>
+          <p className={`text-xs tracking-widest uppercase font-bold ${isDark ? "text-neutral-400" : "text-gray-500"}`}>{t("Visitante VIP", "VIP Visitor")}</p>
           <h1 className="text-xl font-bold text-transparent bg-clip-text bg-linear-to-r from-[#c81474] to-pink-500 wrap-break-word leading-tight">
             {user?.name}
           </h1>
         </div>
         <div className="flex items-center space-x-2 shrink-0">
-          <button onClick={toggleTheme} className={`p-2 rounded-full transition-colors ${isDark ? "bg-neutral-800/50 text-yellow-400 hover:bg-neutral-700" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+          <button onClick={toggleLanguage} className={`p-2 rounded-full transition-colors ${isDark ? "bg-neutral-800/50 text-blue-400 hover:bg-neutral-700" : "bg-gray-100 text-blue-600 hover:bg-gray-200"}`} title={t("Cambiar Idioma", "Change Language")}>
+            <Globe className="w-5 h-5" />
+          </button>
+          <button onClick={toggleTheme} className={`p-2 rounded-full transition-colors ${isDark ? "bg-neutral-800/50 text-yellow-400 hover:bg-neutral-700" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`} title={t("Cambiar Tema", "Toggle Theme")}>
             {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
-            className={`flex items-center space-x-2 p-2 rounded-full transition-colors ${isDark ? "text-neutral-400 hover:text-red-400 bg-neutral-800/50" : "text-gray-500 hover:text-red-500 bg-gray-100"}`}
+            className={`p-2 rounded-full transition-colors ${isDark ? "text-neutral-400 hover:text-red-400 bg-neutral-800/50" : "text-gray-500 hover:text-red-500 bg-gray-100"}`}
+            title={t("Cerrar Sesión", "Sign Out")}
           >
             <LogOut className="w-5 h-5" />
           </button>
@@ -125,7 +152,7 @@ export default function ClienteDashboard() {
           className="w-full mb-8 flex items-center justify-center space-x-3 bg-[#c81474] hover:bg-[#a61060] text-white py-4 px-6 rounded-2xl font-black uppercase tracking-widest shadow-[0_0_30px_rgba(200,20,116,0.4)] transition-all active:scale-95"
         >
           <Camera className="w-7 h-7" />
-          <span>Escanear Stand</span>
+          <span>{t("Escanear Stand", "Scan Stand")}</span>
         </motion.button>
 
         {/* Tarjeta de Progreso */}
@@ -136,9 +163,9 @@ export default function ClienteDashboard() {
         >
           <Activity className="w-10 h-10 text-[#c81474] mx-auto mb-4" />
           <h2 className={`text-6xl font-black mb-2 ${isDark ? "text-white" : "text-gray-900"}`}>{estadisticas.total}</h2>
-          <p className="text-[#c81474] font-bold uppercase tracking-widest text-sm">Stands Calificados</p>
+          <p className="text-[#c81474] font-bold uppercase tracking-widest text-sm">{t("Stands Calificados", "Rated Stands")}</p>
           <p className={`mt-4 text-sm font-medium ${isDark ? "text-neutral-400" : "text-gray-500"}`}>
-            ¡Sigue escaneando códigos QR para completar tu recorrido!
+            {t("¡Sigue escaneando códigos QR para completar tu recorrido!", "Keep scanning QR codes to complete your tour!")}
           </p>
         </motion.div>
 
@@ -150,13 +177,13 @@ export default function ClienteDashboard() {
         >
           <h3 className={`text-lg font-bold mb-4 flex items-center uppercase tracking-widest ${isDark ? "text-neutral-300" : "text-gray-700"}`}>
             <MapPin className="w-5 h-5 mr-2 text-[#c81474]" />
-            Tu Recorrido
+            {t("Tu Recorrido", "Your Tour")}
           </h3>
 
           <div className="space-y-4">
             {estadisticas.historial.length === 0 ? (
               <div className={`border rounded-2xl p-8 text-center ${isDark ? "bg-neutral-900/50 border-neutral-800" : "bg-white border-gray-200 shadow-sm"}`}>
-                <p className={isDark ? "text-neutral-500" : "text-gray-500"}>Aún no has calificado ningún stand.</p>
+                <p className={isDark ? "text-neutral-500" : "text-gray-500"}>{t("Aún no has calificado ningún stand.", "You haven't rated any stands yet.")}</p>
               </div>
             ) : (
               estadisticas.historial.map((item, index) => (
@@ -167,7 +194,7 @@ export default function ClienteDashboard() {
                   <div className="flex-1">
                     <h4 className={`font-bold text-lg mb-1 ${isDark ? "text-white" : "text-gray-900"}`}>{item.standNombre}</h4>
                     <p className={`text-xs font-medium ${isDark ? "text-neutral-500" : "text-gray-500"}`}>
-                      {new Date(item.fecha).toLocaleDateString('es-ES', { 
+                      {new Date(item.fecha).toLocaleDateString(language === "en" ? 'en-US' : 'es-ES', { 
                         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
                       })}
                     </p>
@@ -212,7 +239,7 @@ export default function ClienteDashboard() {
               </button>
               
               <h2 className={`text-xl font-bold mb-6 uppercase tracking-widest text-center mt-2 ${isDark ? "text-white" : "text-gray-900"}`}>
-                Escanear Stand
+                {t("Escanear Stand", "Scan Stand")}
               </h2>
               
               <div id="qr-reader" className="w-full max-w-sm rounded-2xl overflow-hidden border-4 border-[#c81474] min-h-75 flex items-center justify-center bg-black">
@@ -220,7 +247,7 @@ export default function ClienteDashboard() {
               </div>
               
               <p className={`mt-6 text-center text-sm font-medium ${isDark ? "text-neutral-400" : "text-gray-600"}`}>
-                Apunta tu cámara al código QR proporcionado por el stand para evaluarlo.
+                {t("Apunta tu cámara al código QR proporcionado por el stand para evaluarlo.", "Point your camera at the QR code provided by the stand to evaluate it.")}
               </p>
             </motion.div>
           </motion.div>
