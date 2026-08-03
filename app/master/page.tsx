@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { signOut } from "next-auth/react";
-import { Users, Store, Gift, Settings, LogOut, Upload, Star, Trophy, History, Play, Plus, X, Eye, MessageSquare, Edit, Trash2, Download, ExternalLink, Printer, Copy, Menu, Maximize, AlertTriangle, Search, Sun, Moon } from "lucide-react";
+import { Users, Store, Gift, Settings, LogOut, Upload, Star, Trophy, History, Play, Plus, X, Eye, MessageSquare, Edit, Trash2, Download, ExternalLink, Printer, Copy, Menu, Maximize, AlertTriangle, Search, Sun, Moon, Globe } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import * as XLSX from "xlsx";
 import QRCodeStyling from "qr-code-styling";
@@ -18,6 +18,7 @@ export default function MasterDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   
   const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [language, setLanguage] = useState<"en" | "es">("en");
 
   const [standsList, setStandsList] = useState<any[]>([]);
   const [clientesList, setClientesList] = useState<any[]>([]);
@@ -60,6 +61,14 @@ export default function MasterDashboard() {
     const savedTheme = localStorage.getItem("master-theme") as "dark" | "light";
     if (savedTheme) setTheme(savedTheme);
 
+    const savedLang = localStorage.getItem("master-lang") as "en" | "es";
+    if (savedLang) {
+      setLanguage(savedLang);
+    } else {
+      setLanguage("en");
+      localStorage.setItem("master-lang", "en");
+    }
+
     setMensaje("");
     if (activeTab === "stands") cargarListaStands();
     if (activeTab === "clientes") cargarListaClientes();
@@ -73,7 +82,14 @@ export default function MasterDashboard() {
     localStorage.setItem("master-theme", newTheme);
   };
 
+  const toggleLanguage = () => {
+    const newLang = language === "en" ? "es" : "en";
+    setLanguage(newLang);
+    localStorage.setItem("master-lang", newLang);
+  };
+
   const isDark = theme === "dark";
+  const t = (es: string, en: string) => language === "en" ? en : es;
 
   const cargarListaStands = async () => setStandsList(await obtenerStands());
   const cargarListaClientes = async () => setClientesList(await obtenerClientes());
@@ -90,7 +106,7 @@ export default function MasterDashboard() {
   const guardarConfiguracion = async () => {
     setLoading(true);
     await guardarAjustes(ajustes.requiredStandsForLottery, ajustes.activarEstrellas);
-    setMensaje("Configuración guardada.");
+    setMensaje(t("Configuración guardada.", "Settings saved."));
     setTimeout(() => setMensaje(""), 3000);
     setLoading(false);
   };
@@ -132,7 +148,7 @@ export default function MasterDashboard() {
   const handleEliminarStand = (id: string, nombre: string) => {
     setConfirmDialog({
       isOpen: true,
-      message: `¿Estás seguro de que deseas eliminar el stand "${nombre}"? También se borrarán todas sus calificaciones.`,
+      message: t(`¿Estás seguro de que deseas eliminar el stand "${nombre}"? También se borrarán todas sus calificaciones.`, `Are you sure you want to delete the stand "${nombre}"? All of its ratings will also be deleted.`),
       onConfirm: async () => {
         setConfirmDialog({ ...confirmDialog, isOpen: false });
         setLoading(true);
@@ -161,7 +177,7 @@ export default function MasterDashboard() {
   const handleEliminarCliente = (id: string, nombre: string) => {
     setConfirmDialog({
       isOpen: true,
-      message: `¿Estás seguro de eliminar al visitante "${nombre}"? Sus calificaciones y premios también se borrarán.`,
+      message: t(`¿Estás seguro de eliminar al visitante "${nombre}"? Sus calificaciones y premios también se borrarán.`, `Are you sure you want to delete the visitor "${nombre}"? Their ratings and awards will also be deleted.`),
       onConfirm: async () => {
         setConfirmDialog({ ...confirmDialog, isOpen: false });
         setLoading(true);
@@ -178,7 +194,7 @@ export default function MasterDashboard() {
     if (clientesList.length === 0) return;
     setConfirmDialog({
       isOpen: true,
-      message: `¡ATENCIÓN! Vas a eliminar a TODOS los visitantes registrados (${clientesList.length}) junto con sus calificaciones y premios. Esta acción es destructiva y NO se puede deshacer.`,
+      message: t(`¡ATENCIÓN! Vas a eliminar a TODOS los visitantes registrados (${clientesList.length}) junto con sus calificaciones y premios. Esta acción es destructiva y NO se puede deshacer.`, `WARNING! You are about to delete ALL registered visitors (${clientesList.length}) along with their ratings and awards. This action is destructive and CANNOT be undone.`),
       onConfirm: async () => {
         setConfirmDialog({ ...confirmDialog, isOpen: false });
         setLoading(true);
@@ -195,7 +211,7 @@ export default function MasterDashboard() {
     e.stopPropagation();
     setConfirmDialog({
       isOpen: true,
-      message: `¿Estás seguro de borrar a "${nombre}" del historial de ganadores? Esto NO eliminará al visitante, solo su registro de premio.`,
+      message: t(`¿Estás seguro de borrar a "${nombre}" del historial de ganadores? Esto NO eliminará al visitante, solo su registro de premio.`, `Are you sure you want to delete "${nombre}" from the winner history? This will NOT delete the visitor, only their award record.`),
       onConfirm: async () => {
         setConfirmDialog({ ...confirmDialog, isOpen: false });
         setLoading(true);
@@ -222,15 +238,12 @@ export default function MasterDashboard() {
   };
 
   const copiarDatosLogin = (s: any) => {
-    const texto = `Usuario: ${s.username}\nContraseña: ${s.password}\nLink de acceso: ${window.location.origin}/login`;
+    const texto = `${t("Usuario", "User")}: ${s.username}\n${t("Contraseña", "Password")}: ${s.password}\n${t("Link de acceso", "Login Link")}: ${window.location.origin}/login`;
     navigator.clipboard.writeText(texto);
-    setMensaje(`Datos copiados al portapapeles.`);
+    setMensaje(t(`Datos copiados al portapapeles.`, `Data copied to clipboard.`));
     setTimeout(() => setMensaje(""), 3000);
   };
 
-  // ==========================================
-  // IMPRIMIR QR (SOLUCIÓN: 1 HOJA, SIN FECHAS)
-  // ==========================================
   const imprimirQRDesdeMaster = async (s: any) => {
     const url = `${window.location.origin}/calificar/${s.id}`;
     const qrCode = new QRCodeStyling({
@@ -250,30 +263,11 @@ export default function MasterDashboard() {
         <!DOCTYPE html>
         <html>
           <head>
-            <title>QR Stand</title>
+            <title>${t("Imprimir QR", "Print QR")} - ${s.nombreStand}</title>
             <style>
-              /* ESTO BORRA LA FECHA, LA HORA Y LA URL DEL NAVEGADOR */
               @page { size: auto; margin: 0mm; } 
-              body { 
-                display: flex; 
-                flex-direction: column; 
-                align-items: center; 
-                justify-content: center; 
-                height: 100vh; 
-                margin: 0; 
-                padding: 20px;
-                box-sizing: border-box;
-                font-family: Arial, sans-serif; 
-                text-align: center; 
-                background: white; 
-              }
-              .qr-container { 
-                padding: 30px; 
-                border: 6px solid #c81474; 
-                border-radius: 30px; 
-                margin: 30px 0; 
-                background: white;
-              }
+              body { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; font-family: Arial, sans-serif; text-align: center; background: white; }
+              .qr-container { padding: 30px; border: 6px solid #c81474; border-radius: 30px; margin: 30px 0; background: white; }
               img { width: 500px; height: 500px; object-fit: contain; }
               h1 { font-size: 50px; margin: 0; color: #000; font-weight: 900; text-transform: uppercase; }
               p { font-size: 26px; color: #333; margin: 0; font-weight: bold; }
@@ -282,12 +276,8 @@ export default function MasterDashboard() {
           <body>
             <h1>${s.nombreStand}</h1>
             <div class="qr-container"><img src="${imgUrl}" alt="QR" /></div>
-            <p>Escanea este código para calificar nuestro stand</p>
-            <script>
-              window.onload = function() { 
-                setTimeout(() => { window.print(); window.close(); }, 800); 
-              }
-            </script>
+            <p>${t("Escanea este código para calificar nuestro stand", "Scan this code to rate our stand")}</p>
+            <script>window.onload = function() { setTimeout(() => { window.print(); window.close(); }, 800); }</script>
           </body>
         </html>
       `);
@@ -356,7 +346,7 @@ export default function MasterDashboard() {
         setMensaje(res.message);
         setTimeout(() => setMensaje(""), 3000);
         if (res.success) cargarListaStands();
-      } catch (error) { setMensaje("Error procesando Excel."); }
+      } catch (error) { setMensaje(t("Error procesando Excel.", "Error processing Excel.")); }
       finally { setLoading(false); if (fileInputRefStands.current) fileInputRefStands.current.value = ""; }
     };
     reader.readAsBinaryString(file);
@@ -376,29 +366,29 @@ export default function MasterDashboard() {
         setMensaje(res.message);
         setTimeout(() => setMensaje(""), 3000);
         if (res.success) cargarListaClientes();
-      } catch (error) { setMensaje("Error procesando Excel."); }
+      } catch (error) { setMensaje(t("Error procesando Excel.", "Error processing Excel.")); }
       finally { setLoading(false); if (fileInputRefClientes.current) fileInputRefClientes.current.value = ""; }
     };
     reader.readAsBinaryString(file);
   };
 
   const exportarStandsExcel = () => {
-    const data = standsList.map((s: any) => ({ "Nombre del Stand": s.nombreStand, "Usuario": s.username, "Contraseña": s.password }));
+    const data = standsList.map((s: any) => ({ [t("Nombre del Stand", "Stand Name")]: s.nombreStand, [t("Usuario", "User")]: s.username, [t("Contraseña", "Password")]: s.password }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Stands");
+    XLSX.utils.book_append_sheet(wb, ws, t("Stands", "Stands"));
     XLSX.writeFile(wb, "Reporte_Stands.xlsx");
   };
 
   const exportarClientesExcel = () => {
     const data = clientesList.map((c: any) => ({ 
-      "Nombres": c.nombres, "Apellidos": c.apellidos, "Documento": c.username, 
-      "Institución": c.institucion, "Cargo": c.cargo, "Teléfono": c.telefono, "Correo": c.correo,
-      "Stands Calificados": c._count.calificacionesDadas
+      [t("Nombres", "First Name")]: c.nombres, [t("Apellidos", "Last Name")]: c.apellidos, [t("Documento", "Document")]: c.username, 
+      [t("Institución", "Institution")]: c.institucion, [t("Cargo", "Position")]: c.cargo, [t("Teléfono", "Phone")]: c.telefono, [t("Correo", "Email")]: c.correo,
+      [t("Stands Calificados", "Rated Stands")]: c._count.calificacionesDadas
     }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Visitantes");
+    XLSX.utils.book_append_sheet(wb, ws, t("Visitantes", "Visitors"));
     XLSX.writeFile(wb, "Reporte_Visitantes.xlsx");
   };
 
@@ -419,11 +409,11 @@ export default function MasterDashboard() {
   const totalPagesClientes = Math.ceil(filteredClientes.length / limitClientes);
 
   const tabs = [
-    { id: "stands", label: "Stands", icon: Store },
-    { id: "clientes", label: "Visitantes", icon: Users },
-    { id: "sorteo", label: "Sorteo Dinámico", icon: Gift },
-    { id: "historial", label: "Historial Sorteos", icon: History },
-    { id: "ajustes", label: "Configuración", icon: Settings },
+    { id: "stands", label: t("Stands", "Stands"), icon: Store },
+    { id: "clientes", label: t("Visitantes", "Visitors"), icon: Users },
+    { id: "sorteo", label: t("Sorteo Dinámico", "Dynamic Draw"), icon: Gift },
+    { id: "historial", label: t("Historial Sorteos", "Draw History"), icon: History },
+    { id: "ajustes", label: t("Configuración", "Settings"), icon: Settings },
   ];
 
   return (
@@ -433,7 +423,7 @@ export default function MasterDashboard() {
           <motion.aside initial={{ width: 0, opacity: 0 }} animate={{ width: 256, opacity: 1 }} exit={{ width: 0, opacity: 0 }} className={`border-r p-6 flex flex-col z-20 shadow-2xl overflow-hidden shrink-0 ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-gray-200"}`}>
             <div className="mb-10 flex justify-between items-center whitespace-nowrap">
               <h2 className={`text-2xl font-black tracking-widest uppercase ${isDark ? "text-transparent bg-clip-text bg-linear-to-r from-yellow-400 to-[#c81474]" : "text-[#c81474]"}`}>
-                Panel Master
+                {t("Panel Master", "Master Panel")}
               </h2>
             </div>
             <nav className="flex-1 space-y-3 w-52">
@@ -448,7 +438,7 @@ export default function MasterDashboard() {
               })}
             </nav>
             <button onClick={() => signOut({ callbackUrl: "/login" })} className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all mt-auto font-bold w-52 ${isDark ? "hover:bg-red-500/10 text-red-500" : "hover:bg-red-50 text-red-600"}`}>
-              <LogOut className="w-5 h-5" /><span>Cerrar Sesión</span>
+              <LogOut className="w-5 h-5" /><span>{t("Cerrar Sesión", "Sign Out")}</span>
             </button>
           </motion.aside>
         )}
@@ -459,7 +449,7 @@ export default function MasterDashboard() {
 
         <div className="relative z-10">
           <div className="flex items-center mb-6 space-x-4">
-            <button onClick={() => setSidebarOpen(!sidebarOpen)} className={`p-2 rounded-lg transition-colors ${isDark ? "bg-neutral-800 hover:bg-neutral-700 text-white" : "bg-white border border-gray-200 hover:bg-gray-100 text-gray-700"}`} title="Ocultar/Mostrar Menú">
+            <button onClick={() => setSidebarOpen(!sidebarOpen)} className={`p-2 rounded-lg transition-colors ${isDark ? "bg-neutral-800 hover:bg-neutral-700 text-white" : "bg-white border border-gray-200 hover:bg-gray-100 text-gray-700"}`}>
               <Menu className="w-6 h-6" />
             </button>
             <AnimatePresence>
@@ -471,33 +461,32 @@ export default function MasterDashboard() {
             </AnimatePresence>
           </div>
 
-          {/* ================= STANDS ================= */}
+          {/* STANDS */}
           {activeTab === "stands" && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
               <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
                 <div>
-                  <h1 className="text-4xl font-black uppercase">Gestión de Stands</h1>
-                  <p className={`font-bold mt-1 ${isDark ? "text-neutral-400" : "text-gray-500"}`}>Total registrados: {standsList.length}</p>
+                  <h1 className="text-4xl font-black uppercase">{t("Gestión de Stands", "Stand Management")}</h1>
+                  <p className={`font-bold mt-1 ${isDark ? "text-neutral-400" : "text-gray-500"}`}>{t("Total registrados:", "Total registered:")} {standsList.length}</p>
                 </div>
                 <div className="flex space-x-3 flex-wrap gap-y-2">
                   <button onClick={() => setIsModalStandOpen(true)} className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-bold transition-all border ${isDark ? "bg-neutral-800 text-white border-neutral-700 hover:bg-neutral-700" : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"}`}>
-                    <Plus className="w-5 h-5" /><span>Manual</span>
+                    <Plus className="w-5 h-5" /><span>{t("Manual", "Manual")}</span>
                   </button>
                   <input type="file" accept=".xlsx, .xls" className="hidden" ref={fileInputRefStands} onChange={handleFileUploadStands} />
                   <button onClick={() => fileInputRefStands.current?.click()} disabled={loading} className="flex items-center space-x-2 bg-[#c81474] hover:bg-[#a61060] text-white px-4 py-2 rounded-xl font-bold transition-all shadow-md">
-                    <Upload className="w-5 h-5" /><span>Excel</span>
+                    <Upload className="w-5 h-5" /><span>{t("Excel", "Excel")}</span>
                   </button>
                 </div>
               </div>
 
-              {/* BUSCADOR DE STANDS */}
               <div className="relative w-full md:w-96 mb-6">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                   <Search className={`h-5 w-5 ${isDark ? "text-neutral-500" : "text-gray-400"}`} />
                 </div>
                 <input
                   type="text"
-                  placeholder="Buscar stand por nombre o usuario..."
+                  placeholder={t("Buscar stand por nombre o usuario...", "Search stand by name or user...")}
                   value={searchStand}
                   onChange={(e) => { setSearchStand(e.target.value); setPageStands(1); }}
                   className={`w-full pl-12 pr-4 py-3 rounded-xl focus:outline-none focus:border-[#c81474] transition-colors shadow-inner ${isDark ? "bg-neutral-900 border border-neutral-700 text-white" : "bg-white border border-gray-300 text-gray-900"}`}
@@ -506,13 +495,13 @@ export default function MasterDashboard() {
 
               <div className={`flex justify-between items-center mb-4 text-sm ${isDark ? "text-neutral-400" : "text-gray-600"}`}>
                 <div className="flex items-center space-x-2">
-                  <span>Mostrar:</span>
+                  <span>{t("Mostrar:", "Show:")}</span>
                   <select value={limitStands} onChange={(e) => {setLimitStands(Number(e.target.value)); setPageStands(1);}} className={`rounded-lg p-1 outline-none border ${isDark ? "bg-neutral-900 border-neutral-700 text-white" : "bg-white border-gray-300 text-gray-700"}`}>
                     <option value={10}>10</option><option value={20}>20</option><option value={50}>50</option><option value={100}>100</option>
                   </select>
                 </div>
                 <button onClick={exportarStandsExcel} className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-bold transition-all border ${isDark ? "bg-green-600/20 text-green-500 border-green-500/50 hover:bg-green-600/30" : "bg-green-50 text-green-700 border-green-200 hover:bg-green-100"}`}>
-                  <Download className="w-4 h-4" /><span>Exportar</span>
+                  <Download className="w-4 h-4" /><span>{t("Exportar", "Export")}</span>
                 </button>
               </div>
 
@@ -520,15 +509,15 @@ export default function MasterDashboard() {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className={`border-b ${isDark ? "bg-black/50 border-neutral-800 text-neutral-300" : "bg-gray-50 border-gray-200 text-gray-600"}`}>
-                      <th className="p-4 font-bold">Stand</th>
-                      <th className="p-4 font-bold">Usuario</th>
-                      <th className="p-4 font-bold">Contraseña</th>
-                      <th className="p-4 font-bold text-right">Acciones</th>
+                      <th className="p-4 font-bold">{t("Stand", "Stand")}</th>
+                      <th className="p-4 font-bold">{t("Usuario", "User")}</th>
+                      <th className="p-4 font-bold">{t("Contraseña", "Password")}</th>
+                      <th className="p-4 font-bold text-right">{t("Acciones", "Actions")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {paginatedStands.length === 0 ? (
-                      <tr><td colSpan={4} className={`p-8 text-center ${isDark ? "text-neutral-500" : "text-gray-500"}`}>No se encontraron stands con esos datos.</td></tr>
+                      <tr><td colSpan={4} className={`p-8 text-center ${isDark ? "text-neutral-500" : "text-gray-500"}`}>{t("No se encontraron stands con esos datos.", "No stands found with that data.")}</td></tr>
                     ) : (
                       paginatedStands.map((s: any) => (
                         <tr key={s.id} className={`border-b transition-colors ${isDark ? "border-neutral-800/50 hover:bg-neutral-800/50" : "border-gray-100 hover:bg-gray-50"}`}>
@@ -540,12 +529,12 @@ export default function MasterDashboard() {
                           <td className={`p-4 font-mono ${isDark ? "text-purple-400" : "text-purple-600"}`}>{s.password}</td>
                           <td className="p-4">
                             <div className="flex justify-end space-x-2">
-                              <button onClick={() => copiarDatosLogin(s)} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-white" : "text-gray-500 bg-gray-100 hover:text-gray-900"}`} title="Copiar Datos Login"><Copy className="w-4 h-4" /></button>
-                              <a href={`/calificar/${s.id}`} target="_blank" rel="noopener noreferrer" className={`p-2 rounded-lg transition-colors flex items-center justify-center ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-green-400" : "text-gray-500 bg-gray-100 hover:text-green-600"}`} title="Link Calificar"><ExternalLink className="w-4 h-4" /></a>
-                              <button onClick={() => imprimirQRDesdeMaster(s)} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-[#c81474]" : "text-gray-500 bg-gray-100 hover:text-[#c81474]"}`} title="Imprimir QR"><Printer className="w-4 h-4" /></button>
-                              <button onClick={() => abrirDetalles(s, "STAND")} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-[#c81474]" : "text-gray-500 bg-gray-100 hover:text-[#c81474]"}`} title="Ver Comentarios"><Eye className="w-4 h-4" /></button>
-                              <button onClick={() => { setEditingStand(s); setIsEditStandModalOpen(true); }} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-blue-400" : "text-gray-500 bg-gray-100 hover:text-blue-600"}`} title="Editar"><Edit className="w-4 h-4" /></button>
-                              <button onClick={() => handleEliminarStand(s.id, s.nombreStand)} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-red-400" : "text-gray-500 bg-gray-100 hover:text-red-600"}`} title="Eliminar"><Trash2 className="w-4 h-4" /></button>
+                              <button onClick={() => copiarDatosLogin(s)} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-white" : "text-gray-500 bg-gray-100 hover:text-gray-900"}`} title={t("Copiar Datos Login", "Copy Login Data")}><Copy className="w-4 h-4" /></button>
+                              <a href={`/calificar/${s.id}`} target="_blank" rel="noopener noreferrer" className={`p-2 rounded-lg transition-colors flex items-center justify-center ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-green-400" : "text-gray-500 bg-gray-100 hover:text-green-600"}`} title={t("Link Calificar", "Rating Link")}><ExternalLink className="w-4 h-4" /></a>
+                              <button onClick={() => imprimirQRDesdeMaster(s)} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-[#c81474]" : "text-gray-500 bg-gray-100 hover:text-[#c81474]"}`} title={t("Imprimir QR", "Print QR")}><Printer className="w-4 h-4" /></button>
+                              <button onClick={() => abrirDetalles(s, "STAND")} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-[#c81474]" : "text-gray-500 bg-gray-100 hover:text-[#c81474]"}`} title={t("Ver Comentarios", "View Comments")}><Eye className="w-4 h-4" /></button>
+                              <button onClick={() => { setEditingStand(s); setIsEditStandModalOpen(true); }} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-blue-400" : "text-gray-500 bg-gray-100 hover:text-blue-600"}`} title={t("Editar", "Edit")}><Edit className="w-4 h-4" /></button>
+                              <button onClick={() => handleEliminarStand(s.id, s.nombreStand)} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-red-400" : "text-gray-500 bg-gray-100 hover:text-red-600"}`} title={t("Eliminar", "Delete")}><Trash2 className="w-4 h-4" /></button>
                             </div>
                           </td>
                         </tr>
@@ -555,40 +544,39 @@ export default function MasterDashboard() {
                 </table>
               </div>
               <div className="flex justify-between items-center mt-4">
-                <button disabled={pageStands === 1} onClick={() => setPageStands(pageStands - 1)} className={`px-4 py-2 border rounded-lg text-sm font-bold disabled:opacity-50 transition-colors ${isDark ? "bg-neutral-900 border-neutral-700 text-white hover:bg-neutral-800" : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"}`}>Anterior</button>
-                <span className={`text-sm ${isDark ? "text-neutral-400" : "text-gray-500"}`}>Página {pageStands} de {totalPagesStands || 1}</span>
-                <button disabled={pageStands === totalPagesStands || totalPagesStands === 0} onClick={() => setPageStands(pageStands + 1)} className={`px-4 py-2 border rounded-lg text-sm font-bold disabled:opacity-50 transition-colors ${isDark ? "bg-neutral-900 border-neutral-700 text-white hover:bg-neutral-800" : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"}`}>Siguiente</button>
+                <button disabled={pageStands === 1} onClick={() => setPageStands(pageStands - 1)} className={`px-4 py-2 border rounded-lg text-sm font-bold disabled:opacity-50 transition-colors ${isDark ? "bg-neutral-900 border-neutral-700 text-white hover:bg-neutral-800" : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"}`}>{t("Anterior", "Previous")}</button>
+                <span className={`text-sm ${isDark ? "text-neutral-400" : "text-gray-500"}`}>{t("Página", "Page")} {pageStands} {t("de", "of")} {totalPagesStands || 1}</span>
+                <button disabled={pageStands === totalPagesStands || totalPagesStands === 0} onClick={() => setPageStands(pageStands + 1)} className={`px-4 py-2 border rounded-lg text-sm font-bold disabled:opacity-50 transition-colors ${isDark ? "bg-neutral-900 border-neutral-700 text-white hover:bg-neutral-800" : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"}`}>{t("Siguiente", "Next")}</button>
               </div>
             </motion.div>
           )}
 
-          {/* ================= CLIENTES ================= */}
+          {/* CLIENTES */}
           {activeTab === "clientes" && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
               <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
                 <div>
-                  <h1 className="text-4xl font-black uppercase">Gestión de Visitantes</h1>
-                  <p className={`font-bold mt-1 ${isDark ? "text-neutral-400" : "text-gray-500"}`}>Total registrados: {clientesList.length}</p>
+                  <h1 className="text-4xl font-black uppercase">{t("Gestión de Visitantes", "Visitor Management")}</h1>
+                  <p className={`font-bold mt-1 ${isDark ? "text-neutral-400" : "text-gray-500"}`}>{t("Total registrados:", "Total registered:")} {clientesList.length}</p>
                 </div>
                 <div className="flex space-x-3 flex-wrap gap-y-2">
                   <input type="file" accept=".xlsx, .xls" className="hidden" ref={fileInputRefClientes} onChange={handleFileUploadClientes} />
                   <button onClick={() => fileInputRefClientes.current?.click()} disabled={loading} className="flex items-center space-x-2 bg-[#c81474] hover:bg-[#a61060] text-white px-4 py-2 rounded-xl font-bold transition-all shadow-md">
-                    <Upload className="w-5 h-5" /><span>Excel Visitantes</span>
+                    <Upload className="w-5 h-5" /><span>{t("Excel Visitantes", "Visitor Excel")}</span>
                   </button>
                   <button onClick={handleEliminarTodosClientes} disabled={loading || clientesList.length === 0} className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-bold transition-all border disabled:opacity-50 ${isDark ? "bg-red-600/20 text-red-500 border-red-500/50 hover:bg-red-600/30" : "bg-red-50 text-red-600 border-red-200 hover:bg-red-100"}`}>
-                    <Trash2 className="w-5 h-5" /><span>Eliminar Todos</span>
+                    <Trash2 className="w-5 h-5" /><span>{t("Eliminar Todos", "Delete All")}</span>
                   </button>
                 </div>
               </div>
 
-              {/* BUSCADOR DE VISITANTES */}
               <div className="relative w-full md:w-lg mb-6">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                   <Search className={`h-5 w-5 ${isDark ? "text-neutral-500" : "text-gray-400"}`} />
                 </div>
                 <input
                   type="text"
-                  placeholder="Buscar visitante por nombre, documento o institución..."
+                  placeholder={t("Buscar visitante por nombre, documento o institución...", "Search visitor by name, document or institution...")}
                   value={searchCliente}
                   onChange={(e) => { setSearchCliente(e.target.value); setPageClientes(1); }}
                   className={`w-full pl-12 pr-4 py-3 rounded-xl focus:outline-none focus:border-[#c81474] transition-colors shadow-inner ${isDark ? "bg-neutral-900 border border-neutral-700 text-white" : "bg-white border border-gray-300 text-gray-900"}`}
@@ -597,13 +585,13 @@ export default function MasterDashboard() {
 
               <div className={`flex justify-between items-center mb-4 text-sm ${isDark ? "text-neutral-400" : "text-gray-600"}`}>
                 <div className="flex items-center space-x-2">
-                  <span>Mostrar:</span>
+                  <span>{t("Mostrar:", "Show:")}</span>
                   <select value={limitClientes} onChange={(e) => {setLimitClientes(Number(e.target.value)); setPageClientes(1);}} className={`rounded-lg p-1 outline-none border ${isDark ? "bg-neutral-900 border-neutral-700 text-white" : "bg-white border-gray-300 text-gray-700"}`}>
                     <option value={10}>10</option><option value={20}>20</option><option value={50}>50</option><option value={100}>100</option>
                   </select>
                 </div>
                 <button onClick={exportarClientesExcel} className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-bold transition-all border ${isDark ? "bg-green-600/20 text-green-500 border-green-500/50 hover:bg-green-600/30" : "bg-green-50 text-green-700 border-green-200 hover:bg-green-100"}`}>
-                  <Download className="w-4 h-4" /><span>Exportar</span>
+                  <Download className="w-4 h-4" /><span>{t("Exportar", "Export")}</span>
                 </button>
               </div>
 
@@ -611,16 +599,16 @@ export default function MasterDashboard() {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className={`border-b ${isDark ? "bg-black/50 border-neutral-800 text-neutral-300" : "bg-gray-50 border-gray-200 text-gray-600"}`}>
-                      <th className="p-4 font-bold">Nombre Completo</th>
-                      <th className="p-4 font-bold">Documento</th>
-                      <th className="p-4 font-bold">Institución</th>
-                      <th className="p-4 font-bold">Calif.</th>
-                      <th className="p-4 font-bold text-right">Acciones</th>
+                      <th className="p-4 font-bold">{t("Nombre Completo", "Full Name")}</th>
+                      <th className="p-4 font-bold">{t("Documento", "Document")}</th>
+                      <th className="p-4 font-bold">{t("Institución", "Institution")}</th>
+                      <th className="p-4 font-bold">{t("Calif.", "Ratings")}</th>
+                      <th className="p-4 font-bold text-right">{t("Acciones", "Actions")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {paginatedClientes.length === 0 ? (
-                      <tr><td colSpan={5} className={`p-8 text-center ${isDark ? "text-neutral-500" : "text-gray-500"}`}>No se encontraron visitantes con esos datos.</td></tr>
+                      <tr><td colSpan={5} className={`p-8 text-center ${isDark ? "text-neutral-500" : "text-gray-500"}`}>{t("No se encontraron visitantes con esos datos.", "No visitors found with that data.")}</td></tr>
                     ) : (
                       paginatedClientes.map((c: any) => (
                         <tr key={c.id} className={`border-b transition-colors ${isDark ? "border-neutral-800/50 hover:bg-neutral-800/50" : "border-gray-100 hover:bg-gray-50"}`}>
@@ -634,9 +622,9 @@ export default function MasterDashboard() {
                           </td>
                           <td className="p-4">
                             <div className="flex justify-end space-x-2">
-                              <button onClick={() => abrirDetalles(c, "CLIENTE")} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-[#c81474]" : "text-gray-500 bg-gray-100 hover:text-[#c81474]"}`} title="Ver Auditoría"><Eye className="w-4 h-4" /></button>
-                              <button onClick={() => { setEditingCliente(c); setIsEditClienteModalOpen(true); }} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-blue-400" : "text-gray-500 bg-gray-100 hover:text-blue-600"}`} title="Editar"><Edit className="w-4 h-4" /></button>
-                              <button onClick={() => handleEliminarCliente(c.id, `${c.nombres} ${c.apellidos}`)} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-red-400" : "text-gray-500 bg-gray-100 hover:text-red-600"}`} title="Eliminar"><Trash2 className="w-4 h-4" /></button>
+                              <button onClick={() => abrirDetalles(c, "CLIENTE")} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-[#c81474]" : "text-gray-500 bg-gray-100 hover:text-[#c81474]"}`} title={t("Ver Auditoría", "View Audit")}><Eye className="w-4 h-4" /></button>
+                              <button onClick={() => { setEditingCliente(c); setIsEditClienteModalOpen(true); }} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-blue-400" : "text-gray-500 bg-gray-100 hover:text-blue-600"}`} title={t("Editar", "Edit")}><Edit className="w-4 h-4" /></button>
+                              <button onClick={() => handleEliminarCliente(c.id, `${c.nombres} ${c.apellidos}`)} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-red-400" : "text-gray-500 bg-gray-100 hover:text-red-600"}`} title={t("Eliminar", "Delete")}><Trash2 className="w-4 h-4" /></button>
                             </div>
                           </td>
                         </tr>
@@ -646,28 +634,28 @@ export default function MasterDashboard() {
                 </table>
               </div>
               <div className="flex justify-between items-center mt-4">
-                <button disabled={pageClientes === 1} onClick={() => setPageClientes(pageClientes - 1)} className={`px-4 py-2 border rounded-lg text-sm font-bold disabled:opacity-50 transition-colors ${isDark ? "bg-neutral-900 border-neutral-700 text-white hover:bg-neutral-800" : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"}`}>Anterior</button>
-                <span className={`text-sm ${isDark ? "text-neutral-400" : "text-gray-500"}`}>Página {pageClientes} de {totalPagesClientes || 1}</span>
-                <button disabled={pageClientes === totalPagesClientes || totalPagesClientes === 0} onClick={() => setPageClientes(pageClientes + 1)} className={`px-4 py-2 border rounded-lg text-sm font-bold disabled:opacity-50 transition-colors ${isDark ? "bg-neutral-900 border-neutral-700 text-white hover:bg-neutral-800" : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"}`}>Siguiente</button>
+                <button disabled={pageClientes === 1} onClick={() => setPageClientes(pageClientes - 1)} className={`px-4 py-2 border rounded-lg text-sm font-bold disabled:opacity-50 transition-colors ${isDark ? "bg-neutral-900 border-neutral-700 text-white hover:bg-neutral-800" : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"}`}>{t("Anterior", "Previous")}</button>
+                <span className={`text-sm ${isDark ? "text-neutral-400" : "text-gray-500"}`}>{t("Página", "Page")} {pageClientes} {t("de", "of")} {totalPagesClientes || 1}</span>
+                <button disabled={pageClientes === totalPagesClientes || totalPagesClientes === 0} onClick={() => setPageClientes(pageClientes + 1)} className={`px-4 py-2 border rounded-lg text-sm font-bold disabled:opacity-50 transition-colors ${isDark ? "bg-neutral-900 border-neutral-700 text-white hover:bg-neutral-800" : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"}`}>{t("Siguiente", "Next")}</button>
               </div>
             </motion.div>
           )}
 
-          {/* ================= SORTEO DINÁMICO ================= */}
+          {/* SORTEO */}
           {activeTab === "sorteo" && (
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center justify-center min-h-[80vh]">
               <div className="text-center mb-6">
                 <h1 className={`text-5xl font-black text-transparent bg-clip-text uppercase tracking-widest drop-shadow-sm ${isDark ? "bg-linear-to-r from-yellow-400 to-[#c81474]" : "bg-linear-to-r from-[#c81474] to-pink-500"}`}>
-                  Sorteo de Reconocimientos
+                  {t("Sorteo de Reconocimientos", "Awards Draw")}
                 </h1>
                 <p className={`mt-4 text-lg ${isDark ? "text-neutral-400" : "text-gray-600"}`}>
-                  Participantes: <span className={`font-black text-2xl ml-2 ${isDark ? "text-white" : "text-gray-900"}`}>{participantes.length}</span>
+                  {t("Participantes:", "Participants:")} <span className={`font-black text-2xl ml-2 ${isDark ? "text-white" : "text-gray-900"}`}>{participantes.length}</span>
                 </p>
-                <p className={`text-sm ${isDark ? "text-[#c81474]/70" : "text-gray-500"}`}>(Requisito actual: Haber calificado {ajustes.requiredStandsForLottery} stands o más)</p>
+                <p className={`text-sm ${isDark ? "text-[#c81474]/70" : "text-gray-500"}`}>{t("(Requisito actual: Haber calificado", "(Current requirement: Rated")} {ajustes.requiredStandsForLottery} {t("stands o más)", "stands or more)")}</p>
               </div>
 
               <button onClick={toggleFullscreen} className={`mb-6 flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors font-bold ${isDark ? "text-neutral-400 hover:text-white bg-neutral-800" : "text-gray-600 hover:text-gray-900 bg-white border border-gray-300"}`}>
-                <Maximize className="w-5 h-5" /> <span>Proyectar en Pantalla Completa</span>
+                <Maximize className="w-5 h-5" /> <span>{t("Proyectar en Pantalla Completa", "Project Full Screen")}</span>
               </button>
 
               <div id="sorteo-container" className={`relative w-full max-w-4xl min-h-112.5 py-12 px-6 border-2 shadow-2xl flex flex-col justify-center items-center overflow-hidden mb-12 rounded-[3rem] [&:fullscreen]:rounded-none [&:fullscreen]:border-none [&:fullscreen]:max-w-none [&:fullscreen]:w-screen [&:fullscreen]:h-screen [&:fullscreen]:flex [&:fullscreen]:items-center [&:fullscreen]:justify-center ${isDark ? "bg-neutral-950/90 backdrop-blur-3xl border-neutral-800 shadow-[inset_0_0_100px_rgba(0,0,0,0.8)] [&:fullscreen]:bg-neutral-950" : "bg-white border-gray-100 [&:fullscreen]:bg-white"}`}>
@@ -678,7 +666,7 @@ export default function MasterDashboard() {
                     <div className={`absolute inset-0 rounded-full blur-xl group-hover:blur-2xl transition-all duration-300 animate-pulse ${isDark ? "bg-linear-to-r from-yellow-400 via-[#c81474] to-purple-600 opacity-70 group-hover:opacity-100" : "bg-linear-to-r from-pink-400 via-[#c81474] to-purple-500 opacity-50 group-hover:opacity-80"}`} />
                     <div className={`relative border-4 border-[#c81474] rounded-full w-52 h-52 p-4 flex flex-col items-center justify-center transform group-hover:scale-110 transition-transform shadow-xl ${isDark ? "bg-linear-to-br from-neutral-900 to-black" : "bg-white"}`}>
                       <Play className="w-12 h-12 text-[#c81474] ml-2 mb-2 shrink-0" />
-                      <span className={`font-black text-lg uppercase tracking-wider text-center leading-tight ${isDark ? "text-white" : "text-gray-900"}`}>Iniciar<br/>Selección</span>
+                      <span className={`font-black text-lg uppercase tracking-wider text-center leading-tight ${isDark ? "text-white" : "text-gray-900"}`}>{t("Iniciar", "Start")}<br/>{t("Selección", "Selection")}</span>
                     </div>
                   </button>
                 )}
@@ -699,10 +687,10 @@ export default function MasterDashboard() {
                       CC: {winner.username}
                     </p>
                     <p className="text-xl md:text-3xl text-[#c81474] font-bold uppercase tracking-widest">
-                      {winner.institucion || "Sin Institución"}
+                      {winner.institucion || t("Sin Institución", "No Institution")}
                     </p>
                     <button onClick={() => {setWinner(null); cargarDatosSorteo();}} className="mt-10 bg-[#c81474] text-white px-8 py-3 rounded-full font-bold hover:bg-[#a61060] transition-all shadow-lg">
-                      Realizar otra selección
+                      {t("Realizar otra selección", "Draw another selection")}
                     </button>
                   </motion.div>
                 )}
@@ -710,17 +698,17 @@ export default function MasterDashboard() {
             </motion.div>
           )}
 
-          {/* ================= HISTORIAL COMPLETO ================= */}
+          {/* HISTORIAL */}
           {activeTab === "historial" && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
               <div className="flex justify-between items-center mb-8">
-                <h1 className="text-4xl font-black uppercase">Historial de Sorteos</h1>
-                <p className={`font-bold mt-1 ${isDark ? "text-neutral-400" : "text-gray-500"}`}>Total Entregados: {historialPremios.length}</p>
+                <h1 className="text-4xl font-black uppercase">{t("Historial de Sorteos", "Draw History")}</h1>
+                <p className={`font-bold mt-1 ${isDark ? "text-neutral-400" : "text-gray-500"}`}>{t("Total Entregados:", "Total Awarded:")} {historialPremios.length}</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {historialPremios.length === 0 ? (
-                  <p className={`col-span-full text-center py-10 ${isDark ? "text-neutral-500" : "text-gray-400"}`}>Aún no hay sorteos registrados.</p>
+                  <p className={`col-span-full text-center py-10 ${isDark ? "text-neutral-500" : "text-gray-400"}`}>{t("Aún no hay sorteos registrados.", "No draws registered yet.")}</p>
                 ) : (
                   historialPremios.map((premio: any) => (
                     <div key={premio.id} onClick={() => abrirDetalles(premio.cliente, "GANADOR")} className={`border p-6 rounded-3xl cursor-pointer transition-all hover:border-[#c81474] hover:shadow-xl group relative overflow-hidden ${isDark ? "bg-neutral-900/80 border-neutral-800" : "bg-white border-gray-200"}`}>
@@ -728,7 +716,6 @@ export default function MasterDashboard() {
                       <button 
                         onClick={(e) => handleEliminarGanador(e, premio.id, `${premio.cliente.nombres} ${premio.cliente.apellidos}`)}
                         className={`absolute top-4 right-4 p-2 rounded-full transition-colors opacity-0 group-hover:opacity-100 z-10 ${isDark ? "bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white" : "bg-red-50 text-red-500 hover:bg-red-500 hover:text-white"}`}
-                        title="Eliminar premio del historial"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -736,8 +723,8 @@ export default function MasterDashboard() {
                       <div className="flex justify-between items-start mb-4 pr-8">
                         <Trophy className="w-8 h-8 text-yellow-500 group-hover:scale-110 transition-transform" />
                         <div className="text-right">
-                          <p className={`text-sm font-bold ${isDark ? "text-neutral-300" : "text-gray-700"}`}>{new Date(premio.createdAt).toLocaleDateString()}</p>
-                          <p className={`text-xs ${isDark ? "text-neutral-500" : "text-gray-500"}`}>{new Date(premio.createdAt).toLocaleTimeString()}</p>
+                          <p className={`text-sm font-bold ${isDark ? "text-neutral-300" : "text-gray-700"}`}>{new Date(premio.createdAt).toLocaleDateString(language === "en" ? 'en-US' : 'es-ES')}</p>
+                          <p className={`text-xs ${isDark ? "text-neutral-500" : "text-gray-500"}`}>{new Date(premio.createdAt).toLocaleTimeString(language === "en" ? 'en-US' : 'es-ES')}</p>
                         </div>
                       </div>
                       <h3 className={`text-xl font-black uppercase leading-tight mb-2 truncate ${isDark ? "text-white" : "text-gray-900"}`} title={`${premio.cliente.nombres} ${premio.cliente.apellidos}`}>
@@ -752,29 +739,40 @@ export default function MasterDashboard() {
             </motion.div>
           )}
 
-          {/* ================= AJUSTES ================= */}
+          {/* AJUSTES */}
           {activeTab === "ajustes" && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl mx-auto mt-10">
               <div className={`border p-10 rounded-3xl shadow-xl ${isDark ? "bg-neutral-900/80 backdrop-blur-xl border-neutral-800" : "bg-white border-gray-200"}`}>
                 <h1 className={`text-3xl font-black uppercase mb-8 flex items-center border-b pb-4 ${isDark ? "border-neutral-800" : "border-gray-200"}`}>
-                  <Settings className="w-8 h-8 mr-4 text-[#c81474]" /> Configuración
+                  <Settings className="w-8 h-8 mr-4 text-[#c81474]" /> {t("Configuración Global", "Global Settings")}
                 </h1>
                 
                 <div className="space-y-8">
+                  
                   <div className={`flex items-center justify-between p-4 rounded-2xl border ${isDark ? "bg-black/30 border-neutral-800" : "bg-gray-50 border-gray-200"}`}>
                     <div>
-                      <h3 className="font-bold text-lg">Apariencia del Panel</h3>
-                      <p className={`text-sm ${isDark ? "text-neutral-400" : "text-gray-500"}`}>Activar modo {isDark ? "claro" : "oscuro"} para la interfaz.</p>
+                      <h3 className="font-bold text-lg">{t("Idioma del Sistema", "System Language")}</h3>
+                      <p className={`text-sm ${isDark ? "text-neutral-400" : "text-gray-500"}`}>{t("Cambiar entre Español e Inglés.", "Switch between Spanish and English.")}</p>
                     </div>
-                    <button onClick={toggleTheme} className={`p-3 rounded-xl transition-all shadow-md flex items-center space-x-2 font-bold ${isDark ? "bg-white text-neutral-900 hover:bg-gray-200" : "bg-neutral-900 text-white hover:bg-neutral-800"}`}>
-                      {isDark ? <><Sun className="w-5 h-5"/> <span>Modo Claro</span></> : <><Moon className="w-5 h-5"/> <span>Modo Oscuro</span></>}
+                    <button onClick={toggleLanguage} className={`p-3 rounded-xl transition-all shadow-md flex items-center space-x-2 font-bold ${isDark ? "bg-white text-neutral-900 hover:bg-gray-200" : "bg-neutral-900 text-white hover:bg-neutral-800"}`}>
+                      <Globe className="w-5 h-5"/> <span>{language === "en" ? "Español" : "English"}</span>
                     </button>
                   </div>
 
                   <div className={`flex items-center justify-between p-4 rounded-2xl border ${isDark ? "bg-black/30 border-neutral-800" : "bg-gray-50 border-gray-200"}`}>
                     <div>
-                      <h3 className="font-bold text-lg">Calificación por Estrellas</h3>
-                      <p className={`text-sm ${isDark ? "text-neutral-400" : "text-gray-500"}`}>Permitir a los visitantes dar 1 a 5 estrellas.</p>
+                      <h3 className="font-bold text-lg">{t("Apariencia del Panel", "Panel Appearance")}</h3>
+                      <p className={`text-sm ${isDark ? "text-neutral-400" : "text-gray-500"}`}>{t("Activar modo claro o oscuro para la interfaz.", "Enable light or dark mode for the interface.")}</p>
+                    </div>
+                    <button onClick={toggleTheme} className={`p-3 rounded-xl transition-all shadow-md flex items-center space-x-2 font-bold ${isDark ? "bg-white text-neutral-900 hover:bg-gray-200" : "bg-neutral-900 text-white hover:bg-neutral-800"}`}>
+                      {isDark ? <><Sun className="w-5 h-5"/> <span>{t("Modo Claro", "Light Mode")}</span></> : <><Moon className="w-5 h-5"/> <span>{t("Modo Oscuro", "Dark Mode")}</span></>}
+                    </button>
+                  </div>
+
+                  <div className={`flex items-center justify-between p-4 rounded-2xl border ${isDark ? "bg-black/30 border-neutral-800" : "bg-gray-50 border-gray-200"}`}>
+                    <div>
+                      <h3 className="font-bold text-lg">{t("Calificación por Estrellas", "Star Rating")}</h3>
+                      <p className={`text-sm ${isDark ? "text-neutral-400" : "text-gray-500"}`}>{t("Permitir a los visitantes dar 1 a 5 estrellas.", "Allow visitors to give 1 to 5 stars.")}</p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer shrink-0">
                       <input type="checkbox" className="sr-only peer" checked={ajustes.activarEstrellas} onChange={(e) => setAjustes({...ajustes, activarEstrellas: e.target.checked})} />
@@ -783,13 +781,13 @@ export default function MasterDashboard() {
                   </div>
                   
                   <div className={`p-4 rounded-2xl border ${isDark ? "bg-black/30 border-neutral-800" : "bg-gray-50 border-gray-200"}`}>
-                    <h3 className="font-bold text-lg mb-2">Requisito para Participación</h3>
-                    <p className={`text-sm mb-4 ${isDark ? "text-neutral-400" : "text-gray-500"}`}>¿Cuántos stands debe calificar un visitante para entrar al sorteo?</p>
+                    <h3 className="font-bold text-lg mb-2">{t("Requisito para Participación", "Participation Requirement")}</h3>
+                    <p className={`text-sm mb-4 ${isDark ? "text-neutral-400" : "text-gray-500"}`}>{t("¿Cuántos stands debe calificar un visitante para entrar al sorteo?", "How many stands must a visitor rate to enter the draw?")}</p>
                     <input type="number" min="1" value={ajustes.requiredStandsForLottery} onChange={(e) => setAjustes({...ajustes, requiredStandsForLottery: Number(e.target.value)})} className={`w-full rounded-xl p-4 text-2xl font-bold text-center focus:outline-none focus:border-[#c81474] transition-colors shadow-inner border ${isDark ? "bg-neutral-950 border-neutral-700 text-white" : "bg-white border-gray-300 text-gray-900"}`} />
                   </div>
                   
                   <button onClick={guardarConfiguracion} disabled={loading} className="w-full py-4 bg-[#c81474] hover:bg-[#a61060] text-white font-black text-lg uppercase tracking-widest rounded-xl transition-all shadow-lg disabled:opacity-50">
-                    {loading ? "Guardando..." : "Guardar Cambios"}
+                    {loading ? t("Guardando...", "Saving...") : t("Guardar Cambios", "Save Changes")}
                   </button>
                 </div>
               </div>
@@ -798,20 +796,17 @@ export default function MasterDashboard() {
         </div>
       </main>
 
-      {/* ==================================================== */}
-      {/* MODALES DEL SISTEMA */}
-      {/* ==================================================== */}
-      
+      {/* MODALES DEL MASTER */}
       <AnimatePresence>
         {confirmDialog.isOpen && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-100 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}>
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className={`border rounded-3xl p-8 max-w-sm w-full shadow-2xl relative text-center ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-gray-200"}`} onClick={(e) => e.stopPropagation()}>
               <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-              <h3 className="text-2xl font-bold mb-3">¿Estás seguro?</h3>
+              <h3 className="text-2xl font-bold mb-3">{t("¿Estás seguro?", "Are you sure?")}</h3>
               <p className={`mb-8 ${isDark ? "text-neutral-400" : "text-gray-600"}`}>{confirmDialog.message}</p>
               <div className="flex space-x-4">
-                <button onClick={() => setConfirmDialog({ ...confirmDialog, isOpen: false })} className={`flex-1 px-4 py-3 rounded-xl font-bold transition-all ${isDark ? "bg-neutral-800 hover:bg-neutral-700 text-white" : "bg-gray-100 hover:bg-gray-200 text-gray-900"}`}>Cancelar</button>
-                <button onClick={confirmDialog.onConfirm} className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold transition-all">Confirmar</button>
+                <button onClick={() => setConfirmDialog({ ...confirmDialog, isOpen: false })} className={`flex-1 px-4 py-3 rounded-xl font-bold transition-all ${isDark ? "bg-neutral-800 hover:bg-neutral-700 text-white" : "bg-gray-100 hover:bg-gray-200 text-gray-900"}`}>{t("Cancelar", "Cancel")}</button>
+                <button onClick={confirmDialog.onConfirm} className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold transition-all">{t("Confirmar", "Confirm")}</button>
               </div>
             </motion.div>
           </motion.div>
@@ -823,18 +818,18 @@ export default function MasterDashboard() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => { setIsModalStandOpen(false); setLogoBase64(null); }}>
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className={`border rounded-3xl p-8 max-w-md w-full shadow-2xl relative ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-gray-200"}`} onClick={(e) => e.stopPropagation()}>
               <button onClick={() => { setIsModalStandOpen(false); setLogoBase64(null); }} className={`absolute top-6 right-6 hover:text-[#c81474] ${isDark ? "text-neutral-500" : "text-gray-400"}`}><X className="w-6 h-6" /></button>
-              <h2 className="text-2xl font-bold mb-2">Agregar Stand Manual</h2>
+              <h2 className="text-2xl font-bold mb-2">{t("Agregar Stand Manual", "Add Manual Stand")}</h2>
               <form onSubmit={handleCrearStandManual} className="space-y-6 mt-6">
                 <div>
-                  <label className={`block text-sm font-bold mb-2 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>Nombre del Stand</label>
+                  <label className={`block text-sm font-bold mb-2 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>{t("Nombre del Stand", "Stand Name")}</label>
                   <input type="text" required value={nombreNuevoStand} onChange={(e) => setNombreNuevoStand(e.target.value)} className={`w-full border rounded-xl p-3 focus:outline-none focus:border-[#c81474] transition-colors ${isDark ? "bg-neutral-950 border-neutral-700 text-white" : "bg-white border-gray-300 text-gray-900"}`} />
                 </div>
                 <div>
-                  <label className={`block text-sm font-bold mb-2 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>Logo del Stand (Opcional)</label>
+                  <label className={`block text-sm font-bold mb-2 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>{t("Logo del Stand (Opcional)", "Stand Logo (Optional)")}</label>
                   <input type="file" accept="image/*" onChange={handleLogoUpload} className={`w-full border rounded-xl p-2 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-[#c81474] file:text-white hover:file:bg-[#a61060] ${isDark ? "bg-neutral-950 border-neutral-700 text-white" : "bg-gray-50 border-gray-300 text-gray-900"}`} />
                   {logoBase64 && <div className="mt-3 flex justify-center"><img src={logoBase64} alt="Preview" className="h-16 w-16 object-cover rounded-full border-2 border-[#c81474]" /></div>}
                 </div>
-                <button type="submit" disabled={loading || !nombreNuevoStand.trim()} className="w-full bg-[#c81474] hover:bg-[#a61060] text-white font-bold py-3 px-4 rounded-xl transition-all shadow-md disabled:opacity-50">Crear Stand</button>
+                <button type="submit" disabled={loading || !nombreNuevoStand.trim()} className="w-full bg-[#c81474] hover:bg-[#a61060] text-white font-bold py-3 px-4 rounded-xl transition-all shadow-md disabled:opacity-50">{t("Crear Stand", "Create Stand")}</button>
               </form>
             </motion.div>
           </motion.div>
@@ -846,22 +841,22 @@ export default function MasterDashboard() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setIsEditStandModalOpen(false)}>
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className={`border rounded-3xl p-8 max-w-md w-full shadow-2xl relative ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-gray-200"}`} onClick={(e) => e.stopPropagation()}>
               <button onClick={() => setIsEditStandModalOpen(false)} className={`absolute top-6 right-6 hover:text-[#c81474] ${isDark ? "text-neutral-500" : "text-gray-400"}`}><X className="w-6 h-6" /></button>
-              <h2 className="text-2xl font-bold mb-6">Editar Stand</h2>
+              <h2 className="text-2xl font-bold mb-6">{t("Editar Stand", "Edit Stand")}</h2>
               <form onSubmit={guardarEdicionStand} className="space-y-4">
                 <div>
-                  <label className={`block text-sm font-bold mb-2 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>Nombre del Stand</label>
+                  <label className={`block text-sm font-bold mb-2 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>{t("Nombre del Stand", "Stand Name")}</label>
                   <input type="text" required value={editingStand.nombreStand} onChange={(e) => setEditingStand({...editingStand, nombreStand: e.target.value})} className={`w-full border rounded-xl p-3 focus:outline-none focus:border-[#c81474] ${isDark ? "bg-neutral-950 border-neutral-700 text-white" : "bg-white border-gray-300 text-gray-900"}`} />
                 </div>
                 <div>
-                  <label className={`block text-sm font-bold mb-2 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>Logo del Stand</label>
+                  <label className={`block text-sm font-bold mb-2 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>{t("Logo del Stand (Opcional)", "Stand Logo (Optional)")}</label>
                   <input type="file" accept="image/*" onChange={handleEditLogoUpload} className={`w-full border rounded-xl p-2 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-[#c81474] file:text-white hover:file:bg-[#a61060] ${isDark ? "bg-neutral-950 border-neutral-700 text-white" : "bg-gray-50 border-gray-300 text-gray-900"}`} />
                   {editingStand.logo && <div className="mt-3 flex justify-center"><img src={editingStand.logo} alt="Preview" className="h-16 w-16 object-cover rounded-full border-2 border-[#c81474]" /></div>}
                 </div>
                 <div>
-                  <label className={`block text-sm font-bold mb-2 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>Nueva Contraseña (Opcional)</label>
-                  <input type="text" placeholder="Dejar en blanco para no cambiar" value={editingStand.password} onChange={(e) => setEditingStand({...editingStand, password: e.target.value})} className={`w-full border rounded-xl p-3 focus:outline-none focus:border-[#c81474] ${isDark ? "bg-neutral-950 border-neutral-700 text-white" : "bg-white border-gray-300 text-gray-900"}`} />
+                  <label className={`block text-sm font-bold mb-2 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>{t("Nueva Contraseña (Opcional)", "New Password (Optional)")}</label>
+                  <input type="text" placeholder="" value={editingStand.password} onChange={(e) => setEditingStand({...editingStand, password: e.target.value})} className={`w-full border rounded-xl p-3 focus:outline-none focus:border-[#c81474] ${isDark ? "bg-neutral-950 border-neutral-700 text-white" : "bg-white border-gray-300 text-gray-900"}`} />
                 </div>
-                <button type="submit" disabled={loading} className="w-full bg-[#c81474] hover:bg-[#a61060] text-white font-bold py-3 px-4 rounded-xl transition-all shadow-md disabled:opacity-50 mt-4">Guardar Cambios</button>
+                <button type="submit" disabled={loading} className="w-full bg-[#c81474] hover:bg-[#a61060] text-white font-bold py-3 px-4 rounded-xl transition-all shadow-md disabled:opacity-50 mt-4">{t("Guardar Cambios", "Save Changes")}</button>
               </form>
             </motion.div>
           </motion.div>
@@ -874,42 +869,42 @@ export default function MasterDashboard() {
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className={`border rounded-3xl p-8 max-w-md w-full shadow-2xl relative max-h-[90vh] flex flex-col ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-gray-200"}`} onClick={(e) => e.stopPropagation()}>
               <button onClick={() => setIsEditClienteModalOpen(false)} className={`absolute top-6 right-6 hover:text-[#c81474] ${isDark ? "text-neutral-500" : "text-gray-400"}`}><X className="w-6 h-6" /></button>
               
-              <h2 className="text-2xl font-bold mb-6 shrink-0">Editar Visitante</h2>
+              <h2 className="text-2xl font-bold mb-6 shrink-0">{t("Editar Visitante", "Edit Visitor")}</h2>
               
               <form onSubmit={guardarEdicionCliente} className="flex flex-col flex-1 overflow-hidden">
                 <div className="space-y-4 overflow-y-auto pr-2 pb-4 flex-1" style={{ scrollbarWidth: "thin", scrollbarColor: "#c81474 transparent" }}>
                   <div>
-                    <label className={`block text-sm font-bold mb-2 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>Nombres</label>
+                    <label className={`block text-sm font-bold mb-2 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>{t("Nombres", "First Name")}</label>
                     <input type="text" required value={editingCliente.nombres} onChange={(e) => setEditingCliente({...editingCliente, nombres: e.target.value})} className={`w-full border rounded-xl p-3 focus:outline-none focus:border-[#c81474] ${isDark ? "bg-neutral-950 border-neutral-700 text-white" : "bg-white border-gray-300 text-gray-900"}`} />
                   </div>
                   <div>
-                    <label className={`block text-sm font-bold mb-2 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>Apellidos</label>
+                    <label className={`block text-sm font-bold mb-2 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>{t("Apellidos", "Last Name")}</label>
                     <input type="text" required value={editingCliente.apellidos} onChange={(e) => setEditingCliente({...editingCliente, apellidos: e.target.value})} className={`w-full border rounded-xl p-3 focus:outline-none focus:border-[#c81474] ${isDark ? "bg-neutral-950 border-neutral-700 text-white" : "bg-white border-gray-300 text-gray-900"}`} />
                   </div>
                   <div>
-                    <label className={`block text-sm font-bold mb-2 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>Documento (Usuario/Pass)</label>
+                    <label className={`block text-sm font-bold mb-2 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>{t("Documento (Usuario/Pass)", "Document (User/Pass)")}</label>
                     <input type="text" required value={editingCliente.username} onChange={(e) => setEditingCliente({...editingCliente, username: e.target.value})} className={`w-full border rounded-xl p-3 focus:outline-none focus:border-[#c81474] ${isDark ? "bg-neutral-950 border-neutral-700 text-white" : "bg-white border-gray-300 text-gray-900"}`} />
                   </div>
                   <div>
-                    <label className={`block text-sm font-bold mb-2 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>Institución</label>
+                    <label className={`block text-sm font-bold mb-2 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>{t("Institución", "Institution")}</label>
                     <input type="text" value={editingCliente.institucion || ""} onChange={(e) => setEditingCliente({...editingCliente, institucion: e.target.value})} className={`w-full border rounded-xl p-3 focus:outline-none focus:border-[#c81474] ${isDark ? "bg-neutral-950 border-neutral-700 text-white" : "bg-white border-gray-300 text-gray-900"}`} />
                   </div>
                   <div>
-                    <label className={`block text-sm font-bold mb-2 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>Cargo</label>
+                    <label className={`block text-sm font-bold mb-2 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>{t("Cargo", "Position")}</label>
                     <input type="text" value={editingCliente.cargo || ""} onChange={(e) => setEditingCliente({...editingCliente, cargo: e.target.value})} className={`w-full border rounded-xl p-3 focus:outline-none focus:border-[#c81474] ${isDark ? "bg-neutral-950 border-neutral-700 text-white" : "bg-white border-gray-300 text-gray-900"}`} />
                   </div>
                   <div>
-                    <label className={`block text-sm font-bold mb-2 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>Teléfono</label>
+                    <label className={`block text-sm font-bold mb-2 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>{t("Teléfono", "Phone")}</label>
                     <input type="text" value={editingCliente.telefono || ""} onChange={(e) => setEditingCliente({...editingCliente, telefono: e.target.value})} className={`w-full border rounded-xl p-3 focus:outline-none focus:border-[#c81474] ${isDark ? "bg-neutral-950 border-neutral-700 text-white" : "bg-white border-gray-300 text-gray-900"}`} />
                   </div>
                   <div>
-                    <label className={`block text-sm font-bold mb-2 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>Correo Electrónico</label>
+                    <label className={`block text-sm font-bold mb-2 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>{t("Correo Electrónico", "Email")}</label>
                     <input type="email" value={editingCliente.correo || ""} onChange={(e) => setEditingCliente({...editingCliente, correo: e.target.value})} className={`w-full border rounded-xl p-3 focus:outline-none focus:border-[#c81474] ${isDark ? "bg-neutral-950 border-neutral-700 text-white" : "bg-white border-gray-300 text-gray-900"}`} />
                   </div>
                 </div>
                 
                 <div className={`pt-4 mt-2 border-t shrink-0 ${isDark ? "border-neutral-800" : "border-gray-200"}`}>
-                  <button type="submit" disabled={loading} className="w-full bg-[#c81474] hover:bg-[#a61060] text-white font-bold py-3 px-4 rounded-xl transition-all shadow-md disabled:opacity-50">Guardar Cambios</button>
+                  <button type="submit" disabled={loading} className="w-full bg-[#c81474] hover:bg-[#a61060] text-white font-bold py-3 px-4 rounded-xl transition-all shadow-md disabled:opacity-50">{t("Guardar Cambios", "Save Changes")}</button>
                 </div>
               </form>
             </motion.div>
@@ -926,27 +921,27 @@ export default function MasterDashboard() {
               {tipoDetalle === "GANADOR" ? (
                 <div>
                   <h2 className={`text-3xl font-bold mb-6 uppercase tracking-widest border-b pb-4 flex items-center ${isDark ? "text-yellow-400 border-neutral-800" : "text-yellow-600 border-gray-200"}`}>
-                    <Trophy className="w-8 h-8 mr-3" /> Perfil del Ganador
+                    <Trophy className="w-8 h-8 mr-3" /> {t("Perfil del Ganador", "Winner Profile")}
                   </h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-lg">
-                    <div><p className={`text-sm ${isDark ? "text-neutral-500" : "text-gray-500"}`}>Nombres</p><p className="font-bold">{entidadSeleccionada?.nombres}</p></div>
-                    <div><p className={`text-sm ${isDark ? "text-neutral-500" : "text-gray-500"}`}>Apellidos</p><p className="font-bold">{entidadSeleccionada?.apellidos}</p></div>
-                    <div><p className={`text-sm ${isDark ? "text-neutral-500" : "text-gray-500"}`}>Documento</p><p className="font-mono text-[#c81474]">{entidadSeleccionada?.username}</p></div>
-                    <div><p className={`text-sm ${isDark ? "text-neutral-500" : "text-gray-500"}`}>Institución</p><p className="font-bold">{entidadSeleccionada?.institucion || "N/A"}</p></div>
-                    <div><p className={`text-sm ${isDark ? "text-neutral-500" : "text-gray-500"}`}>Cargo</p><p className="font-bold">{entidadSeleccionada?.cargo || "N/A"}</p></div>
-                    <div><p className={`text-sm ${isDark ? "text-neutral-500" : "text-gray-500"}`}>Teléfono</p><p className="font-bold">{entidadSeleccionada?.telefono || "N/A"}</p></div>
-                    <div className="md:col-span-2"><p className={`text-sm ${isDark ? "text-neutral-500" : "text-gray-500"}`}>Correo</p><p className="font-bold text-[#c81474]">{entidadSeleccionada?.correo || "N/A"}</p></div>
+                    <div><p className={`text-sm ${isDark ? "text-neutral-500" : "text-gray-500"}`}>{t("Nombres", "First Name")}</p><p className="font-bold">{entidadSeleccionada?.nombres}</p></div>
+                    <div><p className={`text-sm ${isDark ? "text-neutral-500" : "text-gray-500"}`}>{t("Apellidos", "Last Name")}</p><p className="font-bold">{entidadSeleccionada?.apellidos}</p></div>
+                    <div><p className={`text-sm ${isDark ? "text-neutral-500" : "text-gray-500"}`}>{t("Documento", "Document")}</p><p className="font-mono text-[#c81474]">{entidadSeleccionada?.username}</p></div>
+                    <div><p className={`text-sm ${isDark ? "text-neutral-500" : "text-gray-500"}`}>{t("Institución", "Institution")}</p><p className="font-bold">{entidadSeleccionada?.institucion || "N/A"}</p></div>
+                    <div><p className={`text-sm ${isDark ? "text-neutral-500" : "text-gray-500"}`}>{t("Cargo", "Position")}</p><p className="font-bold">{entidadSeleccionada?.cargo || "N/A"}</p></div>
+                    <div><p className={`text-sm ${isDark ? "text-neutral-500" : "text-gray-500"}`}>{t("Teléfono", "Phone")}</p><p className="font-bold">{entidadSeleccionada?.telefono || "N/A"}</p></div>
+                    <div className="md:col-span-2"><p className={`text-sm ${isDark ? "text-neutral-500" : "text-gray-500"}`}>{t("Correo Electrónico", "Email")}</p><p className="font-bold text-[#c81474]">{entidadSeleccionada?.correo || "N/A"}</p></div>
                     <div className={`md:col-span-2 mt-4 p-4 border rounded-xl ${isDark ? "bg-yellow-500/10 border-yellow-500/30 text-yellow-500" : "bg-yellow-50 border-yellow-200 text-yellow-700"}`}>
-                      <p className="font-bold flex items-center"><Star className={`w-5 h-5 mr-2 ${isDark ? "fill-yellow-500" : "fill-yellow-500"}`} /> Stands Calificados: {entidadSeleccionada?._count?.calificacionesDadas}</p>
+                      <p className="font-bold flex items-center"><Star className={`w-5 h-5 mr-2 ${isDark ? "fill-yellow-500" : "fill-yellow-500"}`} /> {t("Stands Calificados:", "Rated Stands:")} {entidadSeleccionada?._count?.calificacionesDadas}</p>
                     </div>
                   </div>
                 </div>
               ) : (
                 <>
                   <h2 className="text-2xl font-bold text-[#c81474] mb-2 uppercase tracking-widest">
-                    Auditoría: {tipoDetalle === "STAND" ? entidadSeleccionada?.nombreStand : `${entidadSeleccionada?.nombres} ${entidadSeleccionada?.apellidos}`}
+                    {t("Auditoría:", "Audit:")} {tipoDetalle === "STAND" ? entidadSeleccionada?.nombreStand : `${entidadSeleccionada?.nombres} ${entidadSeleccionada?.apellidos}`}
                   </h2>
-                  <p className={`mb-6 border-b pb-4 ${isDark ? "text-neutral-400 border-neutral-800" : "text-gray-500 border-gray-200"}`}>Total de registros: {historialDetallado.length}</p>
+                  <p className={`mb-6 border-b pb-4 ${isDark ? "text-neutral-400 border-neutral-800" : "text-gray-500 border-gray-200"}`}>{t("Total de registros:", "Total records:")} {historialDetallado.length}</p>
 
                   <div className="overflow-y-auto flex-1 pr-2 space-y-4">
                     {historialDetallado.length === 0 ? (
@@ -964,7 +959,7 @@ export default function MasterDashboard() {
                               )}
                             </div>
                             <div className="text-right">
-                              <span className={`text-xs block mb-1 ${isDark ? "text-neutral-500" : "text-gray-500"}`}>{new Date(h.createdAt).toLocaleDateString()} {new Date(h.createdAt).toLocaleTimeString()}</span>
+                              <span className={`text-xs block mb-1 ${isDark ? "text-neutral-500" : "text-gray-500"}`}>{new Date(h.createdAt).toLocaleDateString(language === "en" ? 'en-US' : 'es-ES')} {new Date(h.createdAt).toLocaleTimeString(language === "en" ? 'en-US' : 'es-ES')}</span>
                               {h.estrellas && (
                                 <span className={`font-bold px-2 py-1 rounded-md inline-flex items-center text-sm ${isDark ? "bg-yellow-500/20 text-yellow-500" : "bg-yellow-100 text-yellow-700 border border-yellow-200"}`}>
                                   {h.estrellas} <Star className="w-3 h-3 ml-1 fill-yellow-500" />
