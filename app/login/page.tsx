@@ -131,93 +131,97 @@ function LoginContent() {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className={`backdrop-blur-xl border rounded-3xl p-10 max-w-md w-full shadow-2xl relative z-10 ${isDark ? "bg-neutral-900/80 border-neutral-800" : "bg-white/90 border-gray-200"}`}
+        className={`backdrop-blur-xl border rounded-3xl p-10 max-w-md w-full shadow-2xl relative z-10 overflow-hidden ${isDark ? "bg-neutral-900/80 border-neutral-800" : "bg-white/90 border-gray-200"}`}
       >
-        <div className="text-center mb-8">
-          {/* AQUÍ INYECTAMOS EL LOGO WEEF 2026 */}
-          <div className="flex justify-center mb-6">
-            <img 
-              src="/logo.png" 
-              alt="WEEF 2026 Logo" 
-              className="w-28 h-28 object-contain drop-shadow-xl"
-            />
-          </div>
-          <h1 className="text-3xl font-black text-transparent bg-clip-text bg-linear-to-r from-[#c81474] to-purple-500 tracking-widest uppercase mb-2">
-            {t("Acceso", "Login")}
-          </h1>
-          <p className={isDark ? "text-neutral-400" : "text-gray-500"}>
-            {t("Ingresa tus credenciales para continuar", "Enter your credentials to continue")}
-          </p>
+        {/* LOGO DE FONDO COMO MARCA DE AGUA */}
+        <div className={`absolute inset-0 z-0 flex justify-center items-center pointer-events-none ${isDark ? "opacity-10" : "opacity-[0.05]"}`}>
+          <img 
+            src="/logo.png" 
+            alt="WEEF Background" 
+            className="w-[120%] h-[120%] object-contain"
+          />
         </div>
 
-        {error && (
-          <div className="bg-red-500/10 border border-red-500/50 text-red-500 p-4 rounded-xl mb-6 flex items-center space-x-3 text-sm font-medium">
-            <AlertCircle className="w-5 h-5 shrink-0" />
-            <span>{error}</span>
+        {/* CONTENIDO PRINCIPAL (POR ENCIMA DEL LOGO) */}
+        <div className="relative z-10">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-black text-transparent bg-clip-text bg-linear-to-r from-[#c81474] to-purple-500 tracking-widest uppercase mb-2">
+              {t("Acceso", "Login")}
+            </h1>
+            <p className={isDark ? "text-neutral-400" : "text-gray-500"}>
+              {t("Ingresa tus credenciales para continuar", "Enter your credentials to continue")}
+            </p>
           </div>
-        )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className={`block text-sm font-bold mb-2 ml-1 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>
-              {t("Usuario / Documento", "Username / Document")}
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <User className={`w-5 h-5 ${isDark ? "text-neutral-500" : "text-gray-400"}`} />
-              </div>
-              <input
-                type="text"
-                required
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className={`w-full border rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:border-[#c81474] transition-colors ${isDark ? "bg-neutral-950 border-neutral-800 text-white" : "bg-gray-50 border-gray-300 text-gray-900"}`}
-                placeholder={t("Ej. 123456789", "e.g. 123456789")}
-              />
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/50 text-red-500 p-4 rounded-xl mb-6 flex items-center space-x-3 text-sm font-medium">
+              <AlertCircle className="w-5 h-5 shrink-0" />
+              <span>{error}</span>
             </div>
-          </div>
+          )}
 
-          <div>
-            <label className={`block text-sm font-bold mb-2 ml-1 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>
-              {t("Contraseña", "Password")}
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Lock className={`w-5 h-5 ${isDark ? "text-neutral-500" : "text-gray-400"}`} />
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label className={`block text-sm font-bold mb-2 ml-1 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>
+                {t("Usuario / Documento", "Username / Document")}
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <User className={`w-5 h-5 ${isDark ? "text-neutral-500" : "text-gray-400"}`} />
+                </div>
+                <input
+                  type="text"
+                  required
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className={`w-full border rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:border-[#c81474] transition-colors ${isDark ? "bg-neutral-950/80 border-neutral-800 text-white" : "bg-gray-50/80 border-gray-300 text-gray-900"}`}
+                  placeholder={t("Ej. 123456789", "e.g. 123456789")}
+                />
               </div>
-              <input
-                type={showPassword ? "text" : "password"}
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className={`w-full border rounded-xl py-3 pl-12 pr-12 focus:outline-none focus:border-[#c81474] transition-colors ${isDark ? "bg-neutral-950 border-neutral-800 text-white" : "bg-gray-50 border-gray-300 text-gray-900"}`}
-                placeholder="••••••••"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className={`absolute inset-y-0 right-0 pr-4 flex items-center transition-colors hover:text-[#c81474] ${isDark ? "text-neutral-500" : "text-gray-400"}`}
-              >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
             </div>
-          </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full flex items-center justify-center space-x-2 py-4 px-6 rounded-xl shadow-[0_0_20px_rgba(200,20,116,0.3)] text-white font-bold bg-linear-to-r from-[#c81474] to-purple-600 hover:from-[#a61060] hover:to-purple-500 transition-all uppercase tracking-widest disabled:opacity-50 mt-4"
-          >
-            {loading ? (
-              <span>{t("Iniciando...", "Logging in...")}</span>
-            ) : (
-              <>
-                <span>{t("Ingresar", "Login")}</span>
-                <LogIn className="w-5 h-5" />
-              </>
-            )}
-          </button>
-        </form>
+            <div>
+              <label className={`block text-sm font-bold mb-2 ml-1 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>
+                {t("Contraseña", "Password")}
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Lock className={`w-5 h-5 ${isDark ? "text-neutral-500" : "text-gray-400"}`} />
+                </div>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className={`w-full border rounded-xl py-3 pl-12 pr-12 focus:outline-none focus:border-[#c81474] transition-colors ${isDark ? "bg-neutral-950/80 border-neutral-800 text-white" : "bg-gray-50/80 border-gray-300 text-gray-900"}`}
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className={`absolute inset-y-0 right-0 pr-4 flex items-center transition-colors hover:text-[#c81474] ${isDark ? "text-neutral-500" : "text-gray-400"}`}
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full flex items-center justify-center space-x-2 py-4 px-6 rounded-xl shadow-[0_0_20px_rgba(200,20,116,0.3)] text-white font-bold bg-linear-to-r from-[#c81474] to-purple-600 hover:from-[#a61060] hover:to-purple-500 transition-all uppercase tracking-widest disabled:opacity-50 mt-4"
+            >
+              {loading ? (
+                <span>{t("Iniciando...", "Logging in...")}</span>
+              ) : (
+                <>
+                  <span>{t("Ingresar", "Login")}</span>
+                  <LogIn className="w-5 h-5" />
+                </>
+              )}
+            </button>
+          </form>
+        </div>
       </motion.div>
     </div>
   );
