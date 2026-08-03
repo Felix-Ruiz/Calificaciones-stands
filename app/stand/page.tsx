@@ -4,9 +4,8 @@ import { useEffect, useState, useRef } from "react";
 import { getSession, signOut } from "next-auth/react";
 import QRCodeStyling from "qr-code-styling";
 import { motion, AnimatePresence } from "framer-motion";
-import { Maximize2, Download, X, LogOut, Star, Printer, UserCircle, Sun, Moon, Globe, BarChart3 } from "lucide-react";
+import { Maximize2, Download, X, LogOut, Star, Printer, UserCircle, Sun, Moon, Globe } from "lucide-react";
 import * as XLSX from "xlsx";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { obtenerCalificacionesStand } from "@/actions/ratingActions";
 import { obtenerStands } from "@/actions/standActions";
 
@@ -22,6 +21,7 @@ export default function StandDashboard() {
   
   // ESTADO PWA
   const [showPwaPrompt, setShowPwaPrompt] = useState(false);
+  const [isAppInstalled, setIsAppInstalled] = useState(true);
 
   const [isClienteModalOpen, setIsClienteModalOpen] = useState(false);
   const [selectedCliente, setSelectedCliente] = useState<any>(null);
@@ -41,6 +41,10 @@ export default function StandDashboard() {
       setLanguage("en");
       localStorage.setItem("app-lang", "en");
     }
+
+    // Comprobación de instalación PWA
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+    setIsAppInstalled(isStandalone);
 
     const fetchSessionAndData = async () => {
       const session = await getSession();
@@ -195,13 +199,6 @@ export default function StandDashboard() {
     setIsClienteModalOpen(true);
   };
 
-  // DATOS PARA LA GRÁFICA DE RECHARTS
-  const chartData = [5, 4, 3, 2, 1].map(star => ({
-    name: `★ ${star}`,
-    valoraciones: calificaciones.filter(c => c.estrellas === star).length
-  }));
-  const maxValoraciones = Math.max(...chartData.map(d => d.valoraciones));
-
   if (loading) {
     return (
       <div className={`min-h-screen flex justify-center items-center font-bold ${isDark ? "bg-neutral-950 text-[#c81474]" : "bg-gray-50 text-[#c81474]"}`}>
@@ -213,34 +210,40 @@ export default function StandDashboard() {
   return (
     <div className={`min-h-screen flex flex-col relative overflow-hidden transition-colors duration-300 ${isDark ? "bg-neutral-950 text-white" : "bg-gray-50 text-gray-900"}`}>
       
-      {/* MARCA DE AGUA DEL LOGO EN EL FONDO */}
+      {isDark && (
+        <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-[#c81474]/10 rounded-full blur-[120px] pointer-events-none" />
+      )}
+      
       <div className={`absolute inset-0 z-0 flex justify-center items-center pointer-events-none ${isDark ? "opacity-10" : "opacity-[0.03]"}`}>
         <img src="/logo.png" alt="WEEF Background" className="w-[80%] h-[80%] object-contain" />
       </div>
 
+      {/* BOTÓN FLOTANTE PWA */}
+      {!isAppInstalled && (
+        <button 
+          onClick={() => setShowPwaPrompt(true)}
+          className="fixed bottom-6 right-6 z-40 flex items-center justify-center w-14 h-14 bg-[#c81474] text-white rounded-full shadow-[0_0_20px_rgba(200,20,116,0.4)] hover:bg-[#a61060] hover:scale-105 transition-all"
+          title={t("Instalar App", "Install App")}
+        >
+          <Download className="w-6 h-6" />
+        </button>
+      )}
+
       <header className={`px-8 py-4 flex justify-between items-center relative z-10 border-b ${isDark ? "bg-neutral-900/80 backdrop-blur-md border-[#c81474]/20" : "bg-white/90 backdrop-blur-md border-gray-200 shadow-sm"}`}>
         
-        {/* LOGO + BIENVENIDA */}
         <div className="flex items-center space-x-4">
           <img src="/logo.png" alt="Logo" className="w-12 h-12 object-contain" />
           <div>
             <p className={`text-sm tracking-widest uppercase font-bold ${isDark ? "text-neutral-400" : "text-gray-500"}`}>
               {t("Bienvenido, Stand", "Welcome, Stand")}
             </p>
-            <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-linear-to-r from-[#c81474] to-purple-500 truncate">
+            <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-linear-to-r from-[#c81474] to-pink-500 truncate">
               {user?.name}
             </h1>
           </div>
         </div>
 
         <div className="flex items-center space-x-3 shrink-0">
-          <button 
-            onClick={() => setShowPwaPrompt(true)} 
-            className={`p-2 rounded-full transition-colors ${isDark ? "bg-neutral-800/50 text-[#c81474] hover:bg-neutral-700" : "bg-gray-100 text-[#c81474] hover:bg-gray-200"}`} 
-            title={t("Instalar App", "Install App")}
-          >
-            <Download className="w-5 h-5" />
-          </button>
           <button 
             onClick={toggleLanguage} 
             className={`p-2 rounded-full transition-colors ${isDark ? "bg-neutral-800/50 text-[#c81474] hover:bg-neutral-700" : "bg-gray-100 text-[#c81474] hover:bg-gray-200"}`} 
@@ -267,21 +270,60 @@ export default function StandDashboard() {
 
       <main className="flex-1 p-8 max-w-7xl mx-auto w-full relative z-10">
         
-        {/* WIDGETS + GRÁFICA EN GRID DE 3 COLUMNAS (En una sola línea) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
           
-          <div className={`relative border rounded-3xl p-8 flex flex-col justify-center items-start shadow-xl overflow-hidden ${isDark ? "bg-neutral-900/60 backdrop-blur-xl border-[#c81474]/30" : "bg-white border-gray-200"}`}>
+          {/* TARJETA COMBINADA: RENDIMIENTO Y ESTADÍSTICAS */}
+          <div className={`lg:col-span-2 relative border rounded-3xl p-8 flex flex-col shadow-xl overflow-hidden ${isDark ? "bg-neutral-900/60 backdrop-blur-xl border-[#c81474]/30" : "bg-white border-gray-200"}`}>
             <div className="absolute top-[-20%] right-[-10%] opacity-10 pointer-events-none rotate-12">
               <Star className="w-64 h-64 text-[#c81474] fill-[#c81474]" />
             </div>
-            <p className="text-[#c81474] font-bold uppercase tracking-widest text-sm mb-2 flex items-center">
-              <Star className="w-4 h-4 mr-2 fill-[#c81474]" /> 
-              {t("Calificaciones Recibidas", "Received Ratings")}
-            </p>
-            <div className="flex items-baseline space-x-4 relative z-10 mt-2">
-              <h2 className={`text-7xl font-black text-transparent bg-clip-text drop-shadow-lg ${isDark ? "bg-linear-to-br from-white via-pink-100 to-[#c81474]" : "bg-linear-to-br from-gray-900 to-[#c81474]"}`}>
-                {calificaciones.length}
-              </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10 w-full h-full items-center">
+              
+              {/* Parte Izquierda: Número Gigante */}
+              <div className="flex flex-col justify-center">
+                <p className="text-[#c81474] font-bold uppercase tracking-widest text-sm mb-2 flex items-center">
+                  <Star className="w-4 h-4 mr-2 fill-[#c81474]" /> 
+                  {t("Rendimiento Global", "Global Performance")}
+                </p>
+                <div className="flex items-baseline space-x-4">
+                  <h2 className={`text-7xl font-black text-transparent bg-clip-text drop-shadow-lg ${isDark ? "bg-linear-to-br from-white via-pink-100 to-[#c81474]" : "bg-linear-to-br from-gray-900 to-[#c81474]"}`}>
+                    {calificaciones.length}
+                  </h2>
+                  <span className={`text-lg font-medium leading-tight ${isDark ? "text-neutral-400" : "text-gray-500"}`} dangerouslySetInnerHTML={{ __html: t("calificaciones<br/>recibidas", "received<br/>ratings") }}></span>
+                </div>
+              </div>
+
+              {/* Parte Derecha: Barras de Estrellas HTML Nativas */}
+              <div className={`flex flex-col justify-center space-y-3 w-full border-l-0 md:border-l pl-0 md:pl-8 mt-6 md:mt-0 ${isDark ? "border-neutral-800" : "border-gray-200"}`}>
+                <h3 className={`text-sm font-bold uppercase tracking-widest mb-2 ${isDark ? "text-neutral-400" : "text-gray-500"}`}>
+                  {t("Estadísticas de Calificaciones", "Rating Statistics")}
+                </h3>
+                
+                {[5, 4, 3, 2, 1].map(star => {
+                  const count = calificaciones.filter(c => c.estrellas === star).length;
+                  const percentage = calificaciones.length > 0 ? (count / calificaciones.length) * 100 : 0;
+                  return (
+                    <div key={star} className="flex items-center w-full">
+                      <span className="w-10 flex items-center justify-end font-bold text-[#c81474]">
+                        {star} <Star className="w-4 h-4 ml-1 fill-[#c81474]" />
+                      </span>
+                      <div className={`flex-1 h-3 mx-4 rounded-full overflow-hidden ${isDark ? "bg-neutral-800" : "bg-gray-100"}`}>
+                        <motion.div 
+                          initial={{ width: 0 }} 
+                          animate={{ width: `${percentage}%` }} 
+                          transition={{ duration: 1, ease: "easeOut" }}
+                          className="h-full bg-linear-to-r from-[#c81474] to-pink-500 rounded-full" 
+                        />
+                      </div>
+                      <span className={`w-8 text-left font-bold ${isDark ? "text-neutral-400" : "text-gray-500"}`}>
+                        {count}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
             </div>
           </div>
 
@@ -298,33 +340,6 @@ export default function StandDashboard() {
               </span>
             </div>
           </button>
-
-          {/* GRÁFICO RECHARTS DE ESTRELLAS */}
-          <div className={`relative border rounded-3xl p-6 shadow-xl flex flex-col ${isDark ? "bg-neutral-900/60 backdrop-blur-xl border-neutral-800" : "bg-white border-gray-200"}`}>
-            <h3 className={`text-sm font-bold uppercase tracking-widest mb-4 flex items-center ${isDark ? "text-neutral-400" : "text-gray-500"}`}>
-              <BarChart3 className="w-4 h-4 mr-2" /> 
-              {t("Estadísticas de Calificaciones", "Rating Statistics")}
-            </h3>
-            {/* Altura ajustada para que no quede vacía */}
-            <div className="w-full h-40">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                  <XAxis type="number" hide domain={[0, maxValoraciones === 0 ? 1 : maxValoraciones]} />
-                  <YAxis dataKey="name" type="category" width={40} axisLine={false} tickLine={false} tick={{ fill: isDark ? '#9ca3af' : '#6b7280', fontSize: 12, fontWeight: 'bold' }} />
-                  <Tooltip 
-                    cursor={{ fill: 'transparent' }} 
-                    contentStyle={{ backgroundColor: isDark ? '#171717' : '#ffffff', border: 'none', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }} 
-                    itemStyle={{ color: '#c81474', fontWeight: 'bold' }} 
-                  />
-                  <Bar dataKey="valoraciones" radius={[0, 8, 8, 0]} barSize={12}>
-                    {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={'#c81474'} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
         </div>
 
         <div className={`border rounded-2xl overflow-hidden shadow-sm ${isDark ? "bg-neutral-900/50 backdrop-blur-md border-neutral-800" : "bg-white border-gray-200"}`}>
@@ -531,7 +546,7 @@ export default function StandDashboard() {
               </div>
               
               <div className={`text-sm mb-6 space-y-2 font-medium ${isDark ? "text-neutral-300" : "text-gray-700"}`}>
-                <p>1. {t("Toca el icono de Compartir", "Tap the Share icon")} <Download className="inline w-4 h-4 mx-1"/> {t("en el menú inferior.", "in the bottom menu.")}</p>
+                <p>1. {t("Toca el icono de Compartir", "Tap the Share icon")} <Download className="inline w-4 h-4 mx-1 text-[#c81474]"/> {t("en el menú inferior.", "in the bottom menu.")}</p>
                 <p>2. {t("Selecciona 'Agregar a Inicio'.", "Select 'Add to Home Screen'.")}</p>
               </div>
               
@@ -545,6 +560,7 @@ export default function StandDashboard() {
           </motion.div>
         )}
       </AnimatePresence>
+
     </div>
   );
 }

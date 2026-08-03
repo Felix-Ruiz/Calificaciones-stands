@@ -14,13 +14,15 @@ export default function ClienteDashboard() {
   const [estadisticas, setEstadisticas] = useState({ total: 0, historial: [] as any[] });
   const [loading, setLoading] = useState(true);
   
-  // Estados para Tema, Escáner y PWA
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [escanerAbierto, setEscanerAbierto] = useState(false);
   const [language, setLanguage] = useState<"en" | "es">("en");
+  
+  // PWA
   const [showPwaPrompt, setShowPwaPrompt] = useState(false);
+  const [isAppInstalled, setIsAppInstalled] = useState(true);
 
-  // Estados de Gamificación y Sorteo
+  // GAMIFICACIÓN Y SORTEO
   const [metaStands, setMetaStands] = useState(5);
   const [soyGanador, setSoyGanador] = useState(false);
   const [premioActualId, setPremioActualId] = useState<string | null>(null);
@@ -28,7 +30,6 @@ export default function ClienteDashboard() {
   const router = useRouter();
 
   useEffect(() => {
-    // 1. Cargar preferencias visuales
     const savedTheme = localStorage.getItem("cliente-theme") as "dark" | "light";
     if (savedTheme) setTheme(savedTheme);
 
@@ -40,16 +41,10 @@ export default function ClienteDashboard() {
       localStorage.setItem("app-lang", "en");
     }
 
-    // 2. Detección de PWA para mostrar prompt de instalación en móvil
+    // Detección de PWA
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
-    const hasSeenPrompt = localStorage.getItem('pwa-prompt-seen');
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    
-    if (!isStandalone && isMobile && !hasSeenPrompt) {
-      setTimeout(() => setShowPwaPrompt(true), 2000);
-    }
+    setIsAppInstalled(isStandalone);
 
-    // 3. Cargar datos del usuario
     const fetchUserData = async () => {
       const session = await getSession();
       if (session?.user) {
@@ -57,11 +52,9 @@ export default function ClienteDashboard() {
         const data = await obtenerEstadisticasCliente(session.user.id);
         setEstadisticas(data);
 
-        // Obtener la meta configurada en el Master
         const ajustes = await obtenerAjustes();
         setMetaStands(ajustes.requiredStandsForLottery);
 
-        // Disparar confeti si acaba de llegar a la meta
         if (data.total >= ajustes.requiredStandsForLottery) {
           const yaCelebro = localStorage.getItem(`confetti_${session.user.id}`);
           if (!yaCelebro) {
@@ -76,7 +69,6 @@ export default function ClienteDashboard() {
     fetchUserData();
   }, []);
 
-  // SISTEMA DE NOTIFICACIÓN EN TIEMPO REAL (Polling sin reabrir modals pasados)
   useEffect(() => {
     if (!user?.id) return;
     
@@ -85,10 +77,7 @@ export default function ClienteDashboard() {
       const misPremios = historial.filter((p: any) => p.clienteId === user.id);
       
       if (misPremios.length > 0) {
-        // Tomamos el ID de nuestro premio más reciente
         const lastPremioId = misPremios[0].id;
-        
-        // Verificamos si ya cerramos este popup específico
         const acknowledged = localStorage.getItem(`premio_ack_${lastPremioId}`);
         if (!acknowledged) {
           setPremioActualId(lastPremioId);
@@ -103,7 +92,6 @@ export default function ClienteDashboard() {
   const cerrarSorteo = () => {
     setSoyGanador(false);
     if (premioActualId) {
-      // Guardamos en caché que el usuario ya cerró este premio
       localStorage.setItem(`premio_ack_${premioActualId}`, "true");
     }
   };
@@ -116,7 +104,6 @@ export default function ClienteDashboard() {
   const dispararConfeti = () => {
     const duration = 3 * 1000;
     const animationEnd = Date.now() + duration;
-    // Usamos los colores de la marca para el confeti
     const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0, colors: ['#c81474', '#9d105b', '#e83b96'] };
     const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
     
@@ -144,7 +131,6 @@ export default function ClienteDashboard() {
   const isDark = theme === "dark";
   const t = (es: string, en: string) => language === "en" ? en : es;
 
-  // Lógica del Escáner
   useEffect(() => {
     let html5QrCode: any = null;
 
@@ -194,7 +180,6 @@ export default function ClienteDashboard() {
   return (
     <div className={`min-h-screen flex flex-col relative overflow-hidden transition-colors duration-300 ${isDark ? "bg-neutral-950 text-white" : "bg-gray-50 text-gray-900"}`}>
       
-      {/* Luces de fondo (Solo oscuro) */}
       {isDark && (
         <>
           <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-[#c81474]/10 rounded-full blur-[120px] pointer-events-none" />
@@ -202,14 +187,23 @@ export default function ClienteDashboard() {
         </>
       )}
 
-      {/* MARCA DE AGUA DEL LOGO EN EL FONDO */}
       <div className={`absolute inset-0 z-0 flex justify-center items-center pointer-events-none ${isDark ? "opacity-10" : "opacity-[0.03]"}`}>
         <img src="/logo.png" alt="WEEF Background" className="w-[80%] h-[80%] object-contain" />
       </div>
 
+      {/* BOTÓN FLOTANTE PWA */}
+      {!isAppInstalled && (
+        <button 
+          onClick={() => setShowPwaPrompt(true)}
+          className="fixed bottom-6 right-6 z-40 flex items-center justify-center w-14 h-14 bg-[#c81474] text-white rounded-full shadow-[0_0_20px_rgba(200,20,116,0.4)] hover:bg-[#a61060] hover:scale-105 transition-all"
+          title={t("Instalar App", "Install App")}
+        >
+          <Download className="w-6 h-6" />
+        </button>
+      )}
+
       <header className={`px-6 py-4 flex justify-between items-center relative z-10 top-0 border-b ${isDark ? "bg-neutral-900/80 backdrop-blur-md border-[#c81474]/20" : "bg-white/90 backdrop-blur-md border-gray-200 shadow-sm"}`}>
         
-        {/* LOGO + BIENVENIDA */}
         <div className="flex-1 mr-4 flex items-center space-x-4">
           <img src="/logo.png" alt="Logo" className="w-12 h-12 object-contain" />
           <div>
@@ -223,13 +217,6 @@ export default function ClienteDashboard() {
         </div>
 
         <div className="flex items-center space-x-2 shrink-0">
-          <button 
-            onClick={() => setShowPwaPrompt(true)} 
-            className={`p-2 rounded-full transition-colors ${isDark ? "bg-neutral-800/50 text-[#c81474] hover:bg-neutral-700" : "bg-gray-100 text-[#c81474] hover:bg-gray-200"}`} 
-            title={t("Instalar App", "Install App")}
-          >
-            <Download className="w-5 h-5" />
-          </button>
           <button 
             onClick={toggleLanguage} 
             className={`p-2 rounded-full transition-colors ${isDark ? "bg-neutral-800/50 text-[#c81474] hover:bg-neutral-700" : "bg-gray-100 text-[#c81474] hover:bg-gray-200"}`} 
@@ -266,7 +253,6 @@ export default function ClienteDashboard() {
           <span>{t("Escanear Stand", "Scan Stand")}</span>
         </motion.button>
 
-        {/* GAMIFICACIÓN Y ESTADÍSTICAS */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -294,7 +280,6 @@ export default function ClienteDashboard() {
             {t("Estadísticas de Stands", "Stand Statistics")}
           </p>
           
-          {/* BARRA DE PROGRESO */}
           <div className={`w-full rounded-full h-4 mb-2 mt-6 overflow-hidden border ${isDark ? "bg-neutral-800 border-neutral-700" : "bg-gray-200 border-gray-300"}`}>
             <div 
               className="bg-linear-to-r from-[#c81474] to-purple-600 h-4 rounded-full transition-all duration-1000 relative" 
@@ -395,7 +380,6 @@ export default function ClienteDashboard() {
         )}
       </AnimatePresence>
 
-      {/* SÚPER MODAL: ¡ERES EL GANADOR! */}
       <AnimatePresence>
         {soyGanador && (
           <motion.div 
@@ -442,7 +426,6 @@ export default function ClienteDashboard() {
         )}
       </AnimatePresence>
 
-      {/* POPUP DE PWA (INSTALAR APP EN MÓVIL) */}
       <AnimatePresence>
         {showPwaPrompt && (
           <motion.div 
@@ -472,7 +455,7 @@ export default function ClienteDashboard() {
               </div>
               
               <div className={`text-sm mb-6 space-y-2 font-medium ${isDark ? "text-neutral-300" : "text-gray-700"}`}>
-                <p>1. {t("Toca el icono de Compartir", "Tap the Share icon")} <Download className="inline w-4 h-4 mx-1"/> {t("en el menú inferior.", "in the bottom menu.")}</p>
+                <p>1. {t("Toca el icono de Compartir", "Tap the Share icon")} <Download className="inline w-4 h-4 mx-1 text-[#c81474]"/> {t("en el menú inferior.", "in the bottom menu.")}</p>
                 <p>2. {t("Selecciona 'Agregar a Inicio'.", "Select 'Add to Home Screen'.")}</p>
               </div>
               
@@ -486,7 +469,6 @@ export default function ClienteDashboard() {
           </motion.div>
         )}
       </AnimatePresence>
-
     </div>
   );
 }

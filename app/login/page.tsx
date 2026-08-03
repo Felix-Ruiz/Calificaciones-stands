@@ -19,6 +19,7 @@ function LoginContent() {
 
   // ESTADO PWA
   const [showPwaPrompt, setShowPwaPrompt] = useState(false);
+  const [isAppInstalled, setIsAppInstalled] = useState(true); // Por defecto true para evitar parpadeos
 
   const searchParams = useSearchParams();
 
@@ -41,13 +42,16 @@ function LoginContent() {
       localStorage.setItem("app-theme", "dark");
     }
 
-    // Detección de PWA para mostrar prompt de instalación en móvil
+    // Detección de PWA Inmediata
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
-    const hasSeenPrompt = localStorage.getItem('pwa-prompt-seen');
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    setIsAppInstalled(isStandalone);
     
-    if (!isStandalone && isMobile && !hasSeenPrompt) {
-      setTimeout(() => setShowPwaPrompt(true), 2000);
+    // Si NO está instalada, mostramos el pop-up de inmediato (si no lo ha cerrado antes)
+    if (!isStandalone) {
+      const hasSeenPrompt = localStorage.getItem('pwa-prompt-seen');
+      if (!hasSeenPrompt) {
+        setShowPwaPrompt(true);
+      }
     }
   }, []);
 
@@ -118,15 +122,6 @@ function LoginContent() {
       {/* BOTONES GLOBALES (ARRIBA A LA DERECHA) */}
       <div className="absolute top-6 right-6 z-50 flex items-center space-x-3">
         <button 
-          onClick={() => setShowPwaPrompt(true)} 
-          className={`flex items-center space-x-2 border px-4 py-2 rounded-full transition-colors shadow-lg ${isDark ? "bg-neutral-900 border-[#c81474]/50 text-[#c81474] hover:bg-neutral-800" : "bg-white border-[#c81474]/30 text-[#c81474] hover:bg-gray-100"}`}
-          title={t("Instalar App", "Install App")}
-        >
-          <Download className="w-5 h-5" />
-          <span className="font-bold uppercase tracking-widest text-xs hidden sm:block">{t("App", "App")}</span>
-        </button>
-
-        <button 
           onClick={toggleLanguage} 
           className={`flex items-center space-x-2 border px-4 py-2 rounded-full transition-colors shadow-lg ${isDark ? "bg-neutral-900 border-[#c81474]/50 text-[#c81474] hover:bg-neutral-800" : "bg-white border-[#c81474]/30 text-[#c81474] hover:bg-gray-100"}`}
           title={t("Cambiar Idioma", "Change Language")}
@@ -144,6 +139,17 @@ function LoginContent() {
         </button>
       </div>
 
+      {/* BOTÓN FLOTANTE PWA (Solo visible si no está instalada) */}
+      {!isAppInstalled && (
+        <button 
+          onClick={() => setShowPwaPrompt(true)}
+          className="fixed bottom-6 right-6 z-40 flex items-center justify-center w-14 h-14 bg-[#c81474] text-white rounded-full shadow-[0_0_20px_rgba(200,20,116,0.4)] hover:bg-[#a61060] hover:scale-105 transition-all"
+          title={t("Instalar App", "Install App")}
+        >
+          <Download className="w-6 h-6" />
+        </button>
+      )}
+
       {isDark && (
         <>
           <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-[#c81474]/20 rounded-full blur-[120px] pointer-events-none" />
@@ -156,7 +162,6 @@ function LoginContent() {
         animate={{ opacity: 1, y: 0 }}
         className={`backdrop-blur-xl border rounded-3xl p-10 max-w-md w-full shadow-2xl relative z-10 overflow-hidden ${isDark ? "bg-neutral-900/80 border-neutral-800" : "bg-white/90 border-gray-200"}`}
       >
-        {/* LOGO DE FONDO COMO MARCA DE AGUA */}
         <div className={`absolute inset-0 z-0 pointer-events-none ${isDark ? "opacity-[0.03]" : "opacity-10"}`}>
           <img 
             src="/logo.png" 
@@ -165,7 +170,6 @@ function LoginContent() {
           />
         </div>
 
-        {/* CONTENIDO PRINCIPAL */}
         <div className="relative z-10">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-black text-transparent bg-clip-text bg-linear-to-r from-[#c81474] to-purple-500 tracking-widest uppercase mb-2 mt-4">
@@ -277,7 +281,7 @@ function LoginContent() {
               </div>
               
               <div className={`text-sm mb-6 space-y-2 font-medium ${isDark ? "text-neutral-300" : "text-gray-700"}`}>
-                <p>1. {t("Toca el icono de Compartir", "Tap the Share icon")} <Download className="inline w-4 h-4 mx-1"/> {t("en el menú inferior.", "in the bottom menu.")}</p>
+                <p>1. {t("Toca el icono de Compartir", "Tap the Share icon")} <Download className="inline w-4 h-4 mx-1 text-[#c81474]"/> {t("en el menú inferior.", "in the bottom menu.")}</p>
                 <p>2. {t("Selecciona 'Agregar a Inicio'.", "Select 'Add to Home Screen'.")}</p>
               </div>
               
