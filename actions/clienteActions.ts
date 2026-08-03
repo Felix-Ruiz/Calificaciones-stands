@@ -70,7 +70,12 @@ export async function obtenerClientes() {
         correo: true,
         _count: { select: { calificacionesDadas: true } }
       },
-      orderBy: { createdAt: "desc" }
+      // SOLUCIÓN: Ordenamos de mayor a menor por el conteo de visitas
+      orderBy: { 
+        calificacionesDadas: {
+          _count: 'desc'
+        }
+      }
     });
   } catch (error) { 
     return []; 

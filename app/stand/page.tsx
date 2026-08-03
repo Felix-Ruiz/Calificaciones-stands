@@ -49,13 +49,13 @@ export default function StandDashboard() {
               type: "linear",
               rotation: Math.PI / 4,
               colorStops: [
-                { offset: 0, color: "#d81b60" },
+                { offset: 0, color: "#c81474" },
                 { offset: 1, color: "#5b21b6" }
               ]
             }
           },
-          cornersSquareOptions: { type: "dot" },
-          cornersDotOptions: { type: "dot" },
+          cornersSquareOptions: { type: "dot", color: "#c81474" },
+          cornersDotOptions: { type: "dot", color: "#c81474" },
           backgroundOptions: { color: "#ffffff" },
           imageOptions: {
             crossOrigin: "anonymous",
@@ -97,6 +97,7 @@ export default function StandDashboard() {
       "Apellidos": c.cliente.apellidos,
       "Institución": c.cliente.institucion,
       "Cargo": c.cliente.cargo,
+      "Teléfono": c.cliente.telefono || "No registrado", // SOLUCIÓN: Teléfono añadido
       "Correo": c.cliente.correo,
       "Estrellas": c.estrellas || "N/A",
       "Comentario": c.comentario
@@ -107,15 +108,12 @@ export default function StandDashboard() {
     XLSX.writeFile(workbook, `Calificaciones_${user?.name}.xlsx`);
   };
 
-  // SOLUCIÓN DE IMPRESIÓN: Usamos "png" para evitar el recorte del SVG
   const imprimirQR = async () => {
     if (!qrCodeInstance.current) return;
     
-    // Obtenemos un Blob de tipo PNG en lugar de SVG
     const blob = await qrCodeInstance.current.getRawData("png");
     if (!blob) return;
 
-    // Creamos una URL temporal para la imagen
     const imgUrl = URL.createObjectURL(blob as Blob);
 
     const printWindow = window.open('', '', 'width=800,height=800');
@@ -126,7 +124,7 @@ export default function StandDashboard() {
             <title>Imprimir QR - ${user?.name}</title>
             <style>
               body { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; margin:0; font-family:sans-serif; text-align:center; }
-              .qr-container { padding: 20px; border: 4px solid #c026d3; border-radius: 20px; margin-top: 10px; }
+              .qr-container { padding: 20px; border: 4px solid #c81474; border-radius: 20px; margin-top: 10px; }
               img { width: 300px; height: 300px; object-fit: contain; }
               h1 { font-size: 32px; margin: 0 0 10px 0; }
               p { font-size: 18px; color: #666; margin-top: 20px; }
@@ -139,7 +137,6 @@ export default function StandDashboard() {
             </div>
             <p>Escanea este código para calificar nuestro stand</p>
             <script>
-              // Esperamos que la imagen cargue para imprimir
               window.onload = function() {
                 setTimeout(() => { window.print(); window.close(); }, 500);
               }
@@ -156,16 +153,16 @@ export default function StandDashboard() {
     setIsClienteModalOpen(true);
   };
 
-  if (loading) return <div className="min-h-screen bg-neutral-950 flex justify-center items-center text-fuchsia-500">Cargando panel...</div>;
+  if (loading) return <div className="min-h-screen bg-neutral-950 flex justify-center items-center text-[#c81474]">Cargando panel...</div>;
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white flex flex-col relative overflow-hidden">
-      <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-fuchsia-600/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-[#c81474]/10 rounded-full blur-[120px] pointer-events-none" />
       
-      <header className="bg-neutral-900/80 backdrop-blur-md border-b border-fuchsia-500/20 px-8 py-4 flex justify-between items-center relative z-10">
+      <header className="bg-neutral-900/80 backdrop-blur-md border-b border-[#c81474]/20 px-8 py-4 flex justify-between items-center relative z-10">
         <div>
           <p className="text-neutral-400 text-sm tracking-widest uppercase">Bienvenido, Stand</p>
-          <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-linear-to-r from-fuchsia-400 to-purple-500">
+          <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-linear-to-r from-[#c81474] to-pink-500">
             {user?.name}
           </h1>
         </div>
@@ -178,28 +175,28 @@ export default function StandDashboard() {
       <main className="flex-1 p-8 max-w-7xl mx-auto w-full relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
           
-          {/* NUEVA TARJETA PRÉMIUM EXCLUSIVA PARA TOTAL DE CALIFICACIONES */}
-          <div className="md:col-span-2 relative bg-neutral-900/60 backdrop-blur-xl border border-fuchsia-500/30 rounded-3xl p-8 flex flex-col justify-center items-start shadow-[0_0_40px_rgba(217,70,239,0.15)] overflow-hidden">
+          <div className="md:col-span-2 relative bg-neutral-900/60 backdrop-blur-xl border border-[#c81474]/30 rounded-3xl p-8 flex flex-col justify-center items-start shadow-[0_0_40px_rgba(200,20,116,0.15)] overflow-hidden">
             <div className="absolute top-[-20%] right-[-10%] opacity-10 pointer-events-none rotate-12">
-              <Star className="w-64 h-64 text-fuchsia-500 fill-fuchsia-500" />
+              <Star className="w-64 h-64 text-[#c81474] fill-[#c81474]" />
             </div>
-            <p className="text-fuchsia-400 font-bold uppercase tracking-widest text-sm mb-2 flex items-center">
-              <Star className="w-4 h-4 mr-2 fill-fuchsia-500" /> Rendimiento Global
+            <p className="text-[#c81474] font-bold uppercase tracking-widest text-sm mb-2 flex items-center">
+              <Star className="w-4 h-4 mr-2 fill-[#c81474]" /> Rendimiento Global
             </p>
             <div className="flex items-baseline space-x-4 relative z-10">
-              <h2 className="text-7xl font-black text-transparent bg-clip-text bg-linear-to-br from-white via-fuchsia-100 to-fuchsia-500 drop-shadow-lg">
+              <h2 className="text-7xl font-black text-transparent bg-clip-text bg-linear-to-br from-white via-pink-100 to-[#c81474] drop-shadow-lg">
                 {calificaciones.length}
               </h2>
               <span className="text-neutral-400 text-lg font-medium leading-tight">calificaciones<br/>recibidas</span>
             </div>
           </div>
 
-          <button onClick={() => setQrModalOpen(true)} className="group relative bg-linear-to-br from-fuchsia-600 to-purple-700 rounded-3xl p-8 flex flex-col justify-center items-center hover:from-fuchsia-500 hover:to-purple-600 transition-all shadow-[0_0_30px_rgba(217,70,239,0.2)] overflow-hidden">
+          {/* Botón QR modificado para el color c81474 */}
+          <button onClick={() => setQrModalOpen(true)} className="group relative bg-linear-to-br from-[#c81474] to-pink-700 rounded-3xl p-8 flex flex-col justify-center items-center hover:from-[#a61060] hover:to-pink-600 transition-all shadow-[0_0_30px_rgba(200,20,116,0.3)] overflow-hidden">
             <div className="bg-white p-2 rounded-xl mb-4 relative z-10 overflow-hidden flex justify-center items-center min-w-20 min-h-20" ref={smallQrRef}>
             </div>
             <div className="flex items-center space-x-2 relative z-10">
               <Maximize2 className="w-5 h-5 text-white" />
-              <span className="font-bold text-lg uppercase tracking-wider">Mostrar QR</span>
+              <span className="font-bold text-lg uppercase tracking-wider text-white">Mostrar QR</span>
             </div>
           </button>
         </div>
@@ -227,14 +224,13 @@ export default function StandDashboard() {
                   <tr><td colSpan={4} className="p-12 text-center text-neutral-500">Aún no tienes calificaciones. ¡Muestra tu código QR!</td></tr>
                 ) : (
                   calificaciones.map((c: any) => (
-                    // FILA CLICABLE
                     <tr 
                       key={c.id} 
                       onClick={() => abrirDetallesCliente(c.cliente)}
                       className="border-b border-neutral-800/50 hover:bg-neutral-800/80 transition-colors cursor-pointer group"
                     >
                       <td className="p-4">
-                        <p className="font-medium group-hover:text-fuchsia-400 transition-colors">{c.cliente.nombres} {c.cliente.apellidos}</p>
+                        <p className="font-medium group-hover:text-[#c81474] transition-colors">{c.cliente.nombres} {c.cliente.apellidos}</p>
                         <p className="text-xs text-neutral-500">{c.cliente.cargo}</p>
                       </td>
                       <td className="p-4 text-neutral-300">{c.cliente.institucion}</td>
@@ -260,11 +256,11 @@ export default function StandDashboard() {
       <AnimatePresence>
         {isClienteModalOpen && selectedCliente && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-neutral-900 border border-neutral-800 rounded-3xl p-8 max-w-lg w-full shadow-2xl relative">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-neutral-900 border border-[#c81474] rounded-3xl p-8 max-w-lg w-full shadow-2xl relative">
               <button onClick={() => setIsClienteModalOpen(false)} className="absolute top-6 right-6 text-neutral-500 hover:text-white bg-neutral-800 p-2 rounded-full"><X className="w-5 h-5" /></button>
               
               <div className="flex items-center mb-6 border-b border-neutral-800 pb-4">
-                <UserCircle className="w-10 h-10 text-fuchsia-500 mr-3" />
+                <UserCircle className="w-10 h-10 text-[#c81474] mr-3" />
                 <h2 className="text-2xl font-bold uppercase tracking-widest text-white">Perfil del Visitante</h2>
               </div>
               
@@ -274,7 +270,7 @@ export default function StandDashboard() {
                 <div><p className="text-neutral-500 text-sm uppercase font-bold">Institución</p><p className="font-medium text-white">{selectedCliente.institucion || "No registrada"}</p></div>
                 <div><p className="text-neutral-500 text-sm uppercase font-bold">Cargo</p><p className="font-medium text-white">{selectedCliente.cargo || "No registrado"}</p></div>
                 <div><p className="text-neutral-500 text-sm uppercase font-bold">Teléfono</p><p className="font-medium text-white">{selectedCliente.telefono || "No registrado"}</p></div>
-                <div><p className="text-neutral-500 text-sm uppercase font-bold">Correo Electrónico</p><p className="font-medium text-fuchsia-400 break-all">{selectedCliente.correo || "No registrado"}</p></div>
+                <div><p className="text-neutral-500 text-sm uppercase font-bold">Correo Electrónico</p><p className="font-medium text-[#c81474] break-all">{selectedCliente.correo || "No registrado"}</p></div>
               </div>
             </motion.div>
           </motion.div>
@@ -285,10 +281,10 @@ export default function StandDashboard() {
       <AnimatePresence>
         {qrModalOpen && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4">
-            <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.8, opacity: 0 }} className="bg-white rounded-3xl p-8 relative max-w-2xl w-full flex flex-col items-center shadow-[0_0_100px_rgba(217,70,239,0.3)]">
+            <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.8, opacity: 0 }} className="bg-white rounded-3xl p-8 relative max-w-2xl w-full flex flex-col items-center shadow-[0_0_100px_rgba(200,20,116,0.3)]">
               
               <div className="absolute top-6 right-6 flex space-x-2">
-                <button onClick={imprimirQR} className="text-neutral-600 hover:text-purple-600 transition-colors bg-neutral-100 hover:bg-purple-100 rounded-full p-2 flex items-center space-x-2 px-4">
+                <button onClick={imprimirQR} className="text-neutral-600 hover:text-[#c81474] transition-colors bg-neutral-100 hover:bg-pink-100 rounded-full p-2 flex items-center space-x-2 px-4">
                   <Printer className="w-5 h-5" /> <span className="font-bold">Imprimir</span>
                 </button>
                 <button onClick={() => setQrModalOpen(false)} className="text-neutral-400 hover:text-neutral-900 transition-colors bg-neutral-100 rounded-full p-2">
@@ -298,10 +294,10 @@ export default function StandDashboard() {
               
               <h3 className="text-2xl font-bold text-neutral-900 mb-8 mt-4 uppercase tracking-widest text-center">Escanea para calificar</h3>
               
-              <div className="bg-neutral-100 p-8 rounded-2xl w-full max-w-md flex justify-center items-center mb-8 border-4 border-fuchsia-500">
+              <div className="bg-neutral-100 p-8 rounded-2xl w-full max-w-md flex justify-center items-center mb-8 border-4 border-[#c81474]">
                  <div ref={largeQrRef} className="w-full h-auto flex justify-center items-center"></div>
               </div>
-              <p className="text-neutral-500 font-medium text-center">Stand: <span className="text-fuchsia-600 font-bold">{user?.name}</span></p>
+              <p className="text-neutral-500 font-medium text-center">Stand: <span className="text-[#c81474] font-bold">{user?.name}</span></p>
             </motion.div>
           </motion.div>
         )}

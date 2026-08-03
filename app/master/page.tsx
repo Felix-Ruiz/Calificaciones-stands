@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { signOut } from "next-auth/react";
-import { Users, Store, Gift, Settings, LogOut, Upload, Star, Trophy, History, Play, Plus, X, Eye, MessageSquare, Edit, Trash2, Download, ExternalLink, Printer, Copy, Menu, Maximize, AlertTriangle, Search } from "lucide-react";
+import { Users, Store, Gift, Settings, LogOut, Upload, Star, Trophy, History, Play, Plus, X, Eye, MessageSquare, Edit, Trash2, Download, ExternalLink, Printer, Copy, Menu, Maximize, AlertTriangle, Search, Sun, Moon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import * as XLSX from "xlsx";
 import QRCodeStyling from "qr-code-styling";
@@ -17,29 +17,27 @@ export default function MasterDashboard() {
   const [mensaje, setMensaje] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   
-  // Listados Originales
+  // SISTEMA DE TEMA (Modo Claro / Oscuro)
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
+
   const [standsList, setStandsList] = useState<any[]>([]);
   const [clientesList, setClientesList] = useState<any[]>([]);
   const [historialPremios, setHistorialPremios] = useState<any[]>([]);
   
-  // Estados de Búsqueda
   const [searchStand, setSearchStand] = useState("");
   const [searchCliente, setSearchCliente] = useState("");
 
-  // Paginación
   const [pageStands, setPageStands] = useState(1);
   const [limitStands, setLimitStands] = useState(20);
   const [pageClientes, setPageClientes] = useState(1);
   const [limitClientes, setLimitClientes] = useState(20);
 
-  // Configuración y Sorteo
   const [ajustes, setAjustes] = useState({ requiredStandsForLottery: 5, activarEstrellas: true });
   const [participantes, setParticipantes] = useState<any[]>([]);
   const [isSpinning, setIsSpinning] = useState(false);
   const [spinningName, setSpinningName] = useState("¿QUIÉN SERÁ EL SELECCIONADO?");
   const [winner, setWinner] = useState<any>(null);
 
-  // Modales
   const [isModalStandOpen, setIsModalStandOpen] = useState(false);
   const [nombreNuevoStand, setNombreNuevoStand] = useState("");
   const [logoBase64, setLogoBase64] = useState<string | null>(null);
@@ -49,10 +47,8 @@ export default function MasterDashboard() {
   const [isEditClienteModalOpen, setIsEditClienteModalOpen] = useState(false);
   const [editingCliente, setEditingCliente] = useState<any>(null);
 
-  // Modal Global de Confirmación
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, message: "", onConfirm: () => {} });
 
-  // Detalles Auditoría y Ganador
   const [detallesAbiertos, setDetallesAbiertos] = useState(false);
   const [tipoDetalle, setTipoDetalle] = useState<"STAND" | "CLIENTE" | "GANADOR" | null>(null);
   const [entidadSeleccionada, setEntidadSeleccionada] = useState<any>(null);
@@ -62,12 +58,23 @@ export default function MasterDashboard() {
   const fileInputRefClientes = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    const savedTheme = localStorage.getItem("master-theme") as "dark" | "light";
+    if (savedTheme) setTheme(savedTheme);
+
     setMensaje("");
     if (activeTab === "stands") cargarListaStands();
     if (activeTab === "clientes") cargarListaClientes();
     if (activeTab === "sorteo" || activeTab === "historial") cargarDatosSorteo();
     if (activeTab === "ajustes") cargarAjustes();
   }, [activeTab]);
+
+  const toggleTheme = () => {
+    const newTheme = theme === "dark" ? "light" : "dark";
+    setTheme(newTheme);
+    localStorage.setItem("master-theme", newTheme);
+  };
+
+  const isDark = theme === "dark";
 
   const cargarListaStands = async () => setStandsList(await obtenerStands());
   const cargarListaClientes = async () => setClientesList(await obtenerClientes());
@@ -222,38 +229,41 @@ export default function MasterDashboard() {
     setTimeout(() => setMensaje(""), 3000);
   };
 
+  // IMPRIMIR QR (Actualizado para mostrarse gigante y sin encabezados)
   const imprimirQRDesdeMaster = async (s: any) => {
     const url = `${window.location.origin}/calificar/${s.id}`;
     const qrCode = new QRCodeStyling({
-      width: 300, height: 300, data: url, image: s.logo || undefined,
-      dotsOptions: { type: "dots", gradient: { type: "linear", rotation: Math.PI / 4, colorStops: [{ offset: 0, color: "#d81b60" }, { offset: 1, color: "#5b21b6" }] } },
-      cornersSquareOptions: { type: "dot" },
-      cornersDotOptions: { type: "dot" },
+      width: 800, height: 800, data: url, image: s.logo || undefined,
+      dotsOptions: { type: "dots", gradient: { type: "linear", rotation: Math.PI / 4, colorStops: [{ offset: 0, color: "#c81474" }, { offset: 1, color: "#5b21b6" }] } },
+      cornersSquareOptions: { type: "dot", color: "#c81474" },
+      cornersDotOptions: { type: "dot", color: "#c81474" },
       backgroundOptions: { color: "#ffffff" },
       imageOptions: { crossOrigin: "anonymous", margin: 0, imageSize: 0.3, hideBackgroundDots: false }
     });
     const blob = await qrCode.getRawData("png");
     if (!blob) return;
     const imgUrl = URL.createObjectURL(blob as Blob);
-    const printWindow = window.open('', '', 'width=800,height=800');
+    const printWindow = window.open('', '', 'width=1000,height=1000');
     if (printWindow) {
       printWindow.document.write(`
         <html>
           <head>
             <title>Imprimir QR - ${s.nombreStand}</title>
             <style>
-              body { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; margin:0; font-family:sans-serif; text-align:center; }
-              .qr-container { padding: 20px; border: 4px solid #c026d3; border-radius: 20px; margin-top: 10px; }
-              img { width: 300px; height: 300px; object-fit: contain; }
-              h1 { font-size: 32px; margin: 0 0 10px 0; }
-              p { font-size: 18px; color: #666; margin-top: 20px; }
+              /* Oculta la fecha y el "about:blank" al imprimir */
+              @page { size: auto; margin: 0mm; }
+              body { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; margin:0; font-family:sans-serif; text-align:center; background: white;}
+              .qr-container { padding: 40px; border: 8px solid #c81474; border-radius: 40px; margin-top: 20px; background: white;}
+              img { width: 600px; height: 600px; object-fit: contain; }
+              h1 { font-size: 60px; margin: 0 0 10px 0; color: #000; font-weight: 900; text-transform: uppercase;}
+              p { font-size: 24px; color: #666; margin-top: 30px; font-weight: bold;}
             </style>
           </head>
           <body>
             <h1>${s.nombreStand}</h1>
             <div class="qr-container"><img src="${imgUrl}" alt="QR" /></div>
-            <p>Escanea este código para calificar nuestro stand</p>
-            <script>window.onload = function() { setTimeout(() => { window.print(); window.close(); }, 500); }</script>
+            <p>Escanea este código con tu cámara para calificar el stand</p>
+            <script>window.onload = function() { setTimeout(() => { window.print(); window.close(); }, 800); }</script>
           </body>
         </html>
       `);
@@ -359,7 +369,9 @@ export default function MasterDashboard() {
   const exportarClientesExcel = () => {
     const data = clientesList.map((c: any) => ({ 
       "Nombres": c.nombres, "Apellidos": c.apellidos, "Documento": c.username, 
-      "Institución": c.institucion, "Cargo": c.cargo, "Teléfono": c.telefono, "Correo": c.correo,
+      "Institución": c.institucion, "Cargo": c.cargo, 
+      "Teléfono": c.telefono, // <-- Teléfono incluido aquí
+      "Correo": c.correo,
       "Stands Calificados": c._count.calificacionesDadas
     }));
     const ws = XLSX.utils.json_to_sheet(data);
@@ -368,8 +380,6 @@ export default function MasterDashboard() {
     XLSX.writeFile(wb, "Reporte_Visitantes.xlsx");
   };
 
-  // ================= FILTROS DE BÚSQUEDA Y PAGINACIÓN =================
-  
   const filteredStands = standsList.filter(s => 
     s.nombreStand?.toLowerCase().includes(searchStand.toLowerCase()) || 
     s.username?.toLowerCase().includes(searchStand.toLowerCase())
@@ -395,26 +405,27 @@ export default function MasterDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-white flex">
+    <div className={`min-h-screen flex transition-colors duration-300 ${isDark ? "bg-neutral-950 text-white" : "bg-gray-50 text-gray-900"}`}>
       <AnimatePresence>
         {sidebarOpen && (
-          <motion.aside initial={{ width: 0, opacity: 0 }} animate={{ width: 256, opacity: 1 }} exit={{ width: 0, opacity: 0 }} className="bg-neutral-900 border-r border-fuchsia-500/20 p-6 flex flex-col z-20 shadow-2xl overflow-hidden shrink-0">
+          <motion.aside initial={{ width: 0, opacity: 0 }} animate={{ width: 256, opacity: 1 }} exit={{ width: 0, opacity: 0 }} className={`border-r p-6 flex flex-col z-20 shadow-2xl overflow-hidden shrink-0 ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-gray-200"}`}>
             <div className="mb-10 flex justify-between items-center whitespace-nowrap">
-              <h2 className="text-2xl font-black text-transparent bg-clip-text bg-linear-to-r from-yellow-400 via-fuchsia-500 to-purple-500 tracking-widest uppercase">
+              <h2 className={`text-2xl font-black tracking-widest uppercase ${isDark ? "text-transparent bg-clip-text bg-linear-to-r from-yellow-400 to-[#c81474]" : "text-[#c81474]"}`}>
                 Panel Master
               </h2>
             </div>
             <nav className="flex-1 space-y-3 w-52">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
                 return (
-                  <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`w-full flex items-center space-x-4 px-5 py-4 rounded-xl transition-all font-bold ${activeTab === tab.id ? "bg-linear-to-r from-fuchsia-600 to-purple-700 shadow-[0_0_20px_rgba(217,70,239,0.4)] text-white" : "hover:bg-neutral-800 text-neutral-400 hover:text-white"}`}>
+                  <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`w-full flex items-center space-x-4 px-5 py-4 rounded-xl transition-all font-bold ${isActive ? "bg-[#c81474] text-white shadow-lg" : (isDark ? "hover:bg-neutral-800 text-neutral-400 hover:text-white" : "hover:bg-gray-100 text-gray-600 hover:text-[#c81474]")}`}>
                     <Icon className="w-5 h-5" /><span>{tab.label}</span>
                   </button>
                 );
               })}
             </nav>
-            <button onClick={() => signOut({ callbackUrl: "/login" })} className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-red-500/10 text-red-500 transition-all mt-auto font-bold w-52">
+            <button onClick={() => signOut({ callbackUrl: "/login" })} className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all mt-auto font-bold w-52 ${isDark ? "hover:bg-red-500/10 text-red-500" : "hover:bg-red-50 text-red-600"}`}>
               <LogOut className="w-5 h-5" /><span>Cerrar Sesión</span>
             </button>
           </motion.aside>
@@ -422,16 +433,16 @@ export default function MasterDashboard() {
       </AnimatePresence>
 
       <main className="flex-1 p-8 overflow-y-auto relative h-screen">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-250 h-125 bg-fuchsia-600/10 rounded-full blur-[150px] pointer-events-none" />
+        {isDark && <div className="absolute top-0 left-1/2 -translate-x-1/2 w-250 h-125 bg-[#c81474]/10 rounded-full blur-[150px] pointer-events-none" />}
 
         <div className="relative z-10">
           <div className="flex items-center mb-6 space-x-4">
-            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-white transition-colors" title="Ocultar/Mostrar Menú">
+            <button onClick={() => setSidebarOpen(!sidebarOpen)} className={`p-2 rounded-lg transition-colors ${isDark ? "bg-neutral-800 hover:bg-neutral-700 text-white" : "bg-white border border-gray-200 hover:bg-gray-100 text-gray-700"}`} title="Ocultar/Mostrar Menú">
               <Menu className="w-6 h-6" />
             </button>
             <AnimatePresence>
               {mensaje && (
-                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex-1 p-3 rounded-xl bg-neutral-900 border border-fuchsia-500 text-fuchsia-400 font-bold text-center shadow-lg">
+                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className={`flex-1 p-3 rounded-xl font-bold text-center shadow-lg ${isDark ? "bg-neutral-900 border border-[#c81474] text-[#c81474]" : "bg-green-50 border border-green-200 text-green-700"}`}>
                   {mensaje}
                 </motion.div>
               )}
@@ -444,14 +455,14 @@ export default function MasterDashboard() {
               <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
                 <div>
                   <h1 className="text-4xl font-black uppercase">Gestión de Stands</h1>
-                  <p className="text-neutral-400 font-bold mt-1">Total registrados: {standsList.length}</p>
+                  <p className={`font-bold mt-1 ${isDark ? "text-neutral-400" : "text-gray-500"}`}>Total registrados: {standsList.length}</p>
                 </div>
                 <div className="flex space-x-3 flex-wrap gap-y-2">
-                  <button onClick={() => setIsModalStandOpen(true)} className="flex items-center space-x-2 bg-neutral-800 text-white px-4 py-2 rounded-xl font-bold hover:bg-neutral-700 transition-all border border-neutral-700">
+                  <button onClick={() => setIsModalStandOpen(true)} className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-bold transition-all border ${isDark ? "bg-neutral-800 text-white border-neutral-700 hover:bg-neutral-700" : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"}`}>
                     <Plus className="w-5 h-5" /><span>Manual</span>
                   </button>
                   <input type="file" accept=".xlsx, .xls" className="hidden" ref={fileInputRefStands} onChange={handleFileUploadStands} />
-                  <button onClick={() => fileInputRefStands.current?.click()} disabled={loading} className="flex items-center space-x-2 bg-fuchsia-600 text-white px-4 py-2 rounded-xl font-bold hover:bg-fuchsia-500 transition-all shadow-[0_0_20px_rgba(217,70,239,0.3)]">
+                  <button onClick={() => fileInputRefStands.current?.click()} disabled={loading} className="flex items-center space-x-2 bg-[#c81474] hover:bg-[#a61060] text-white px-4 py-2 rounded-xl font-bold transition-all shadow-md">
                     <Upload className="w-5 h-5" /><span>Excel</span>
                   </button>
                 </div>
@@ -460,71 +471,59 @@ export default function MasterDashboard() {
               {/* BUSCADOR DE STANDS */}
               <div className="relative w-full md:w-96 mb-6">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Search className="h-5 w-5 text-neutral-500" />
+                  <Search className={`h-5 w-5 ${isDark ? "text-neutral-500" : "text-gray-400"}`} />
                 </div>
                 <input
                   type="text"
                   placeholder="Buscar stand por nombre o usuario..."
                   value={searchStand}
                   onChange={(e) => { setSearchStand(e.target.value); setPageStands(1); }}
-                  className="w-full pl-12 pr-4 py-3 bg-neutral-900 border border-neutral-700 rounded-xl text-white focus:outline-none focus:border-fuchsia-500 transition-colors shadow-inner"
+                  className={`w-full pl-12 pr-4 py-3 rounded-xl focus:outline-none focus:border-[#c81474] transition-colors shadow-inner ${isDark ? "bg-neutral-900 border border-neutral-700 text-white" : "bg-white border border-gray-300 text-gray-900"}`}
                 />
               </div>
 
-              <div className="flex justify-between items-center mb-4 text-sm text-neutral-400">
+              <div className={`flex justify-between items-center mb-4 text-sm ${isDark ? "text-neutral-400" : "text-gray-600"}`}>
                 <div className="flex items-center space-x-2">
                   <span>Mostrar:</span>
-                  <select value={limitStands} onChange={(e) => {setLimitStands(Number(e.target.value)); setPageStands(1);}} className="bg-neutral-900 border border-neutral-700 rounded-lg p-1 text-white outline-none">
+                  <select value={limitStands} onChange={(e) => {setLimitStands(Number(e.target.value)); setPageStands(1);}} className={`rounded-lg p-1 outline-none border ${isDark ? "bg-neutral-900 border-neutral-700 text-white" : "bg-white border-gray-300 text-gray-700"}`}>
                     <option value={10}>10</option><option value={20}>20</option><option value={50}>50</option><option value={100}>100</option>
                   </select>
                 </div>
-                <button onClick={exportarStandsExcel} className="flex items-center space-x-2 bg-green-600/20 text-green-500 border border-green-500/50 px-4 py-2 rounded-xl font-bold hover:bg-green-600/30 transition-all">
+                <button onClick={exportarStandsExcel} className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-bold transition-all border ${isDark ? "bg-green-600/20 text-green-500 border-green-500/50 hover:bg-green-600/30" : "bg-green-50 text-green-700 border-green-200 hover:bg-green-100"}`}>
                   <Download className="w-4 h-4" /><span>Exportar</span>
                 </button>
               </div>
 
-              <div className="bg-neutral-900/80 backdrop-blur-md border border-neutral-800 rounded-2xl overflow-hidden shadow-xl">
+              <div className={`border rounded-2xl overflow-hidden shadow-xl ${isDark ? "bg-neutral-900/80 backdrop-blur-md border-neutral-800" : "bg-white border-gray-200"}`}>
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-neutral-800 bg-black/50">
-                      <th className="p-4 font-bold text-neutral-300">Stand</th>
-                      <th className="p-4 font-bold text-neutral-300">Usuario</th>
-                      <th className="p-4 font-bold text-neutral-300">Contraseña</th>
-                      <th className="p-4 font-bold text-neutral-300 text-right">Acciones</th>
+                    <tr className={`border-b ${isDark ? "bg-black/50 border-neutral-800 text-neutral-300" : "bg-gray-50 border-gray-200 text-gray-600"}`}>
+                      <th className="p-4 font-bold">Stand</th>
+                      <th className="p-4 font-bold">Usuario</th>
+                      <th className="p-4 font-bold">Contraseña</th>
+                      <th className="p-4 font-bold text-right">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
                     {paginatedStands.length === 0 ? (
-                      <tr><td colSpan={4} className="p-8 text-center text-neutral-500">No se encontraron stands con esos datos.</td></tr>
+                      <tr><td colSpan={4} className={`p-8 text-center ${isDark ? "text-neutral-500" : "text-gray-500"}`}>No se encontraron stands con esos datos.</td></tr>
                     ) : (
                       paginatedStands.map((s: any) => (
-                        <tr key={s.id} className="border-b border-neutral-800/50 hover:bg-neutral-800/50 transition-colors">
+                        <tr key={s.id} className={`border-b transition-colors ${isDark ? "border-neutral-800/50 hover:bg-neutral-800/50" : "border-gray-100 hover:bg-gray-50"}`}>
                           <td className="p-4 font-medium flex items-center space-x-3">
-                            {s.logo ? <img src={s.logo} alt="logo" className="w-8 h-8 rounded-full object-cover border border-neutral-700" /> : <div className="w-8 h-8 rounded-full bg-neutral-800 border border-neutral-700 flex items-center justify-center text-xs text-neutral-500">S</div>}
+                            {s.logo ? <img src={s.logo} alt="logo" className={`w-8 h-8 rounded-full object-cover border ${isDark ? "border-neutral-700" : "border-gray-300"}`} /> : <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs border ${isDark ? "bg-neutral-800 border-neutral-700 text-neutral-500" : "bg-gray-100 border-gray-300 text-gray-500"}`}>S</div>}
                             <span>{s.nombreStand}</span>
                           </td>
-                          <td className="p-4 text-fuchsia-400 font-mono">{s.username}</td>
-                          <td className="p-4 text-purple-400 font-mono">{s.password}</td>
+                          <td className={`p-4 font-mono font-bold ${isDark ? "text-[#c81474]" : "text-[#c81474]"}`}>{s.username}</td>
+                          <td className={`p-4 font-mono ${isDark ? "text-purple-400" : "text-purple-600"}`}>{s.password}</td>
                           <td className="p-4">
                             <div className="flex justify-end space-x-2">
-                              <button onClick={() => copiarDatosLogin(s)} className="text-neutral-400 hover:text-white p-2 bg-neutral-800 rounded-lg transition-colors" title="Copiar Datos Login">
-                                <Copy className="w-4 h-4" />
-                              </button>
-                              <a href={`/calificar/${s.id}`} target="_blank" rel="noopener noreferrer" className="text-neutral-400 hover:text-green-400 p-2 bg-neutral-800 rounded-lg transition-colors flex items-center justify-center" title="Link Calificar">
-                                <ExternalLink className="w-4 h-4" />
-                              </a>
-                              <button onClick={() => imprimirQRDesdeMaster(s)} className="text-neutral-400 hover:text-purple-400 p-2 bg-neutral-800 rounded-lg transition-colors" title="Imprimir QR Prémium">
-                                <Printer className="w-4 h-4" />
-                              </button>
-                              <button onClick={() => abrirDetalles(s, "STAND")} className="text-neutral-400 hover:text-fuchsia-400 p-2 bg-neutral-800 rounded-lg transition-colors" title="Ver Comentarios">
-                                <Eye className="w-4 h-4" />
-                              </button>
-                              <button onClick={() => { setEditingStand(s); setIsEditStandModalOpen(true); }} className="text-neutral-400 hover:text-blue-400 p-2 bg-neutral-800 rounded-lg transition-colors" title="Editar">
-                                <Edit className="w-4 h-4" />
-                              </button>
-                              <button onClick={() => handleEliminarStand(s.id, s.nombreStand)} className="text-neutral-400 hover:text-red-400 p-2 bg-neutral-800 rounded-lg transition-colors" title="Eliminar">
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                              <button onClick={() => copiarDatosLogin(s)} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-white" : "text-gray-500 bg-gray-100 hover:text-gray-900"}`} title="Copiar Datos Login"><Copy className="w-4 h-4" /></button>
+                              <a href={`/calificar/${s.id}`} target="_blank" rel="noopener noreferrer" className={`p-2 rounded-lg transition-colors flex items-center justify-center ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-green-400" : "text-gray-500 bg-gray-100 hover:text-green-600"}`} title="Link Calificar"><ExternalLink className="w-4 h-4" /></a>
+                              <button onClick={() => imprimirQRDesdeMaster(s)} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-[#c81474]" : "text-gray-500 bg-gray-100 hover:text-[#c81474]"}`} title="Imprimir QR Prémium"><Printer className="w-4 h-4" /></button>
+                              <button onClick={() => abrirDetalles(s, "STAND")} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-[#c81474]" : "text-gray-500 bg-gray-100 hover:text-[#c81474]"}`} title="Ver Comentarios"><Eye className="w-4 h-4" /></button>
+                              <button onClick={() => { setEditingStand(s); setIsEditStandModalOpen(true); }} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-blue-400" : "text-gray-500 bg-gray-100 hover:text-blue-600"}`} title="Editar"><Edit className="w-4 h-4" /></button>
+                              <button onClick={() => handleEliminarStand(s.id, s.nombreStand)} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-red-400" : "text-gray-500 bg-gray-100 hover:text-red-600"}`} title="Eliminar"><Trash2 className="w-4 h-4" /></button>
                             </div>
                           </td>
                         </tr>
@@ -534,9 +533,9 @@ export default function MasterDashboard() {
                 </table>
               </div>
               <div className="flex justify-between items-center mt-4">
-                <button disabled={pageStands === 1} onClick={() => setPageStands(pageStands - 1)} className="px-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-sm disabled:opacity-50 transition-colors hover:bg-neutral-800">Anterior</button>
-                <span className="text-neutral-400 text-sm">Página {pageStands} de {totalPagesStands || 1}</span>
-                <button disabled={pageStands === totalPagesStands || totalPagesStands === 0} onClick={() => setPageStands(pageStands + 1)} className="px-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-sm disabled:opacity-50 transition-colors hover:bg-neutral-800">Siguiente</button>
+                <button disabled={pageStands === 1} onClick={() => setPageStands(pageStands - 1)} className={`px-4 py-2 border rounded-lg text-sm font-bold disabled:opacity-50 transition-colors ${isDark ? "bg-neutral-900 border-neutral-700 text-white hover:bg-neutral-800" : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"}`}>Anterior</button>
+                <span className={`text-sm ${isDark ? "text-neutral-400" : "text-gray-500"}`}>Página {pageStands} de {totalPagesStands || 1}</span>
+                <button disabled={pageStands === totalPagesStands || totalPagesStands === 0} onClick={() => setPageStands(pageStands + 1)} className={`px-4 py-2 border rounded-lg text-sm font-bold disabled:opacity-50 transition-colors ${isDark ? "bg-neutral-900 border-neutral-700 text-white hover:bg-neutral-800" : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"}`}>Siguiente</button>
               </div>
             </motion.div>
           )}
@@ -547,14 +546,14 @@ export default function MasterDashboard() {
               <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
                 <div>
                   <h1 className="text-4xl font-black uppercase">Gestión de Visitantes</h1>
-                  <p className="text-neutral-400 font-bold mt-1">Total registrados: {clientesList.length}</p>
+                  <p className={`font-bold mt-1 ${isDark ? "text-neutral-400" : "text-gray-500"}`}>Total registrados: {clientesList.length}</p>
                 </div>
                 <div className="flex space-x-3 flex-wrap gap-y-2">
                   <input type="file" accept=".xlsx, .xls" className="hidden" ref={fileInputRefClientes} onChange={handleFileUploadClientes} />
-                  <button onClick={() => fileInputRefClientes.current?.click()} disabled={loading} className="flex items-center space-x-2 bg-purple-600 text-white px-4 py-2 rounded-xl font-bold hover:bg-purple-500 transition-all shadow-[0_0_20px_rgba(147,51,234,0.3)]">
+                  <button onClick={() => fileInputRefClientes.current?.click()} disabled={loading} className="flex items-center space-x-2 bg-[#c81474] hover:bg-[#a61060] text-white px-4 py-2 rounded-xl font-bold transition-all shadow-md">
                     <Upload className="w-5 h-5" /><span>Excel Visitantes</span>
                   </button>
-                  <button onClick={handleEliminarTodosClientes} disabled={loading || clientesList.length === 0} className="flex items-center space-x-2 bg-red-600/20 text-red-500 border border-red-500/50 px-4 py-2 rounded-xl font-bold hover:bg-red-600/30 transition-all disabled:opacity-50">
+                  <button onClick={handleEliminarTodosClientes} disabled={loading || clientesList.length === 0} className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-bold transition-all border disabled:opacity-50 ${isDark ? "bg-red-600/20 text-red-500 border-red-500/50 hover:bg-red-600/30" : "bg-red-50 text-red-600 border-red-200 hover:bg-red-100"}`}>
                     <Trash2 className="w-5 h-5" /><span>Eliminar Todos</span>
                   </button>
                 </div>
@@ -563,65 +562,59 @@ export default function MasterDashboard() {
               {/* BUSCADOR DE VISITANTES */}
               <div className="relative w-full md:w-lg mb-6">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Search className="h-5 w-5 text-neutral-500" />
+                  <Search className={`h-5 w-5 ${isDark ? "text-neutral-500" : "text-gray-400"}`} />
                 </div>
                 <input
                   type="text"
                   placeholder="Buscar visitante por nombre, documento o institución..."
                   value={searchCliente}
                   onChange={(e) => { setSearchCliente(e.target.value); setPageClientes(1); }}
-                  className="w-full pl-12 pr-4 py-3 bg-neutral-900 border border-neutral-700 rounded-xl text-white focus:outline-none focus:border-purple-500 transition-colors shadow-inner"
+                  className={`w-full pl-12 pr-4 py-3 rounded-xl focus:outline-none focus:border-[#c81474] transition-colors shadow-inner ${isDark ? "bg-neutral-900 border border-neutral-700 text-white" : "bg-white border border-gray-300 text-gray-900"}`}
                 />
               </div>
 
-              <div className="flex justify-between items-center mb-4 text-sm text-neutral-400">
+              <div className={`flex justify-between items-center mb-4 text-sm ${isDark ? "text-neutral-400" : "text-gray-600"}`}>
                 <div className="flex items-center space-x-2">
                   <span>Mostrar:</span>
-                  <select value={limitClientes} onChange={(e) => {setLimitClientes(Number(e.target.value)); setPageClientes(1);}} className="bg-neutral-900 border border-neutral-700 rounded-lg p-1 text-white outline-none">
+                  <select value={limitClientes} onChange={(e) => {setLimitClientes(Number(e.target.value)); setPageClientes(1);}} className={`rounded-lg p-1 outline-none border ${isDark ? "bg-neutral-900 border-neutral-700 text-white" : "bg-white border-gray-300 text-gray-700"}`}>
                     <option value={10}>10</option><option value={20}>20</option><option value={50}>50</option><option value={100}>100</option>
                   </select>
                 </div>
-                <button onClick={exportarClientesExcel} className="flex items-center space-x-2 bg-green-600/20 text-green-500 border border-green-500/50 px-4 py-2 rounded-xl font-bold hover:bg-green-600/30 transition-all">
+                <button onClick={exportarClientesExcel} className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-bold transition-all border ${isDark ? "bg-green-600/20 text-green-500 border-green-500/50 hover:bg-green-600/30" : "bg-green-50 text-green-700 border-green-200 hover:bg-green-100"}`}>
                   <Download className="w-4 h-4" /><span>Exportar</span>
                 </button>
               </div>
 
-              <div className="bg-neutral-900/80 backdrop-blur-md border border-neutral-800 rounded-2xl overflow-hidden shadow-xl">
+              <div className={`border rounded-2xl overflow-hidden shadow-xl ${isDark ? "bg-neutral-900/80 backdrop-blur-md border-neutral-800" : "bg-white border-gray-200"}`}>
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-neutral-800 bg-black/50">
-                      <th className="p-4 font-bold text-neutral-300">Nombre Completo</th>
-                      <th className="p-4 font-bold text-neutral-300">Documento</th>
-                      <th className="p-4 font-bold text-neutral-300">Institución</th>
-                      <th className="p-4 font-bold text-neutral-300">Calif.</th>
-                      <th className="p-4 font-bold text-neutral-300 text-right">Acciones</th>
+                    <tr className={`border-b ${isDark ? "bg-black/50 border-neutral-800 text-neutral-300" : "bg-gray-50 border-gray-200 text-gray-600"}`}>
+                      <th className="p-4 font-bold">Nombre Completo</th>
+                      <th className="p-4 font-bold">Documento</th>
+                      <th className="p-4 font-bold">Institución</th>
+                      <th className="p-4 font-bold">Calif.</th>
+                      <th className="p-4 font-bold text-right">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
                     {paginatedClientes.length === 0 ? (
-                      <tr><td colSpan={5} className="p-8 text-center text-neutral-500">No se encontraron visitantes con esos datos.</td></tr>
+                      <tr><td colSpan={5} className={`p-8 text-center ${isDark ? "text-neutral-500" : "text-gray-500"}`}>No se encontraron visitantes con esos datos.</td></tr>
                     ) : (
                       paginatedClientes.map((c: any) => (
-                        <tr key={c.id} className="border-b border-neutral-800/50 hover:bg-neutral-800/50 transition-colors">
-                          <td className="p-4 font-medium">{c.nombres} {c.apellidos}</td>
-                          <td className="p-4 text-purple-400 font-mono">{c.username}</td>
-                          <td className="p-4 text-neutral-400">{c.institucion}</td>
+                        <tr key={c.id} className={`border-b transition-colors ${isDark ? "border-neutral-800/50 hover:bg-neutral-800/50" : "border-gray-100 hover:bg-gray-50"}`}>
+                          <td className="p-4 font-bold">{c.nombres} {c.apellidos}</td>
+                          <td className={`p-4 font-mono font-bold ${isDark ? "text-[#c81474]" : "text-[#c81474]"}`}>{c.username}</td>
+                          <td className={`p-4 ${isDark ? "text-neutral-400" : "text-gray-500"}`}>{c.institucion}</td>
                           <td className="p-4">
-                            <span className="bg-yellow-500/20 text-yellow-500 font-black px-3 py-1 rounded-full flex items-center w-fit space-x-1">
-                              <Star className="w-3 h-3 fill-yellow-500" /><span>{c._count.calificacionesDadas}</span>
+                            <span className="bg-yellow-500/20 border border-yellow-500/30 text-yellow-600 font-black px-3 py-1 rounded-full flex items-center w-fit space-x-1">
+                              <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" /><span>{c._count.calificacionesDadas}</span>
                             </span>
                           </td>
                           <td className="p-4">
                             <div className="flex justify-end space-x-2">
-                              <button onClick={() => abrirDetalles(c, "CLIENTE")} className="text-neutral-400 hover:text-purple-400 p-2 bg-neutral-800 rounded-lg transition-colors" title="Ver Auditoría">
-                                <Eye className="w-4 h-4" />
-                              </button>
-                              <button onClick={() => { setEditingCliente(c); setIsEditClienteModalOpen(true); }} className="text-neutral-400 hover:text-blue-400 p-2 bg-neutral-800 rounded-lg transition-colors" title="Editar">
-                                <Edit className="w-4 h-4" />
-                              </button>
-                              <button onClick={() => handleEliminarCliente(c.id, `${c.nombres} ${c.apellidos}`)} className="text-neutral-400 hover:text-red-400 p-2 bg-neutral-800 rounded-lg transition-colors" title="Eliminar">
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                              <button onClick={() => abrirDetalles(c, "CLIENTE")} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-[#c81474]" : "text-gray-500 bg-gray-100 hover:text-[#c81474]"}`} title="Ver Auditoría"><Eye className="w-4 h-4" /></button>
+                              <button onClick={() => { setEditingCliente(c); setIsEditClienteModalOpen(true); }} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-blue-400" : "text-gray-500 bg-gray-100 hover:text-blue-600"}`} title="Editar"><Edit className="w-4 h-4" /></button>
+                              <button onClick={() => handleEliminarCliente(c.id, `${c.nombres} ${c.apellidos}`)} className={`p-2 rounded-lg transition-colors ${isDark ? "text-neutral-400 bg-neutral-800 hover:text-red-400" : "text-gray-500 bg-gray-100 hover:text-red-600"}`} title="Eliminar"><Trash2 className="w-4 h-4" /></button>
                             </div>
                           </td>
                         </tr>
@@ -631,9 +624,9 @@ export default function MasterDashboard() {
                 </table>
               </div>
               <div className="flex justify-between items-center mt-4">
-                <button disabled={pageClientes === 1} onClick={() => setPageClientes(pageClientes - 1)} className="px-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-sm disabled:opacity-50 transition-colors hover:bg-neutral-800">Anterior</button>
-                <span className="text-neutral-400 text-sm">Página {pageClientes} de {totalPagesClientes || 1}</span>
-                <button disabled={pageClientes === totalPagesClientes || totalPagesClientes === 0} onClick={() => setPageClientes(pageClientes + 1)} className="px-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-sm disabled:opacity-50 transition-colors hover:bg-neutral-800">Siguiente</button>
+                <button disabled={pageClientes === 1} onClick={() => setPageClientes(pageClientes - 1)} className={`px-4 py-2 border rounded-lg text-sm font-bold disabled:opacity-50 transition-colors ${isDark ? "bg-neutral-900 border-neutral-700 text-white hover:bg-neutral-800" : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"}`}>Anterior</button>
+                <span className={`text-sm ${isDark ? "text-neutral-400" : "text-gray-500"}`}>Página {pageClientes} de {totalPagesClientes || 1}</span>
+                <button disabled={pageClientes === totalPagesClientes || totalPagesClientes === 0} onClick={() => setPageClientes(pageClientes + 1)} className={`px-4 py-2 border rounded-lg text-sm font-bold disabled:opacity-50 transition-colors ${isDark ? "bg-neutral-900 border-neutral-700 text-white hover:bg-neutral-800" : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"}`}>Siguiente</button>
               </div>
             </motion.div>
           )}
@@ -642,51 +635,51 @@ export default function MasterDashboard() {
           {activeTab === "sorteo" && (
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center justify-center min-h-[80vh]">
               <div className="text-center mb-6">
-                <h1 className="text-5xl font-black text-transparent bg-clip-text bg-linear-to-r from-yellow-400 to-fuchsia-500 uppercase tracking-widest drop-shadow-[0_0_15px_rgba(234,179,8,0.5)]">
+                <h1 className={`text-5xl font-black text-transparent bg-clip-text uppercase tracking-widest drop-shadow-sm ${isDark ? "bg-linear-to-r from-yellow-400 to-[#c81474]" : "bg-linear-to-r from-[#c81474] to-pink-500"}`}>
                   Sorteo de Reconocimientos
                 </h1>
-                <p className="text-neutral-400 mt-4 text-lg">
-                  Participantes: <span className="text-white font-bold text-2xl ml-2">{participantes.length}</span>
+                <p className={`mt-4 text-lg ${isDark ? "text-neutral-400" : "text-gray-600"}`}>
+                  Participantes: <span className={`font-black text-2xl ml-2 ${isDark ? "text-white" : "text-gray-900"}`}>{participantes.length}</span>
                 </p>
-                <p className="text-fuchsia-500/70 text-sm">(Requisito actual: Haber calificado {ajustes.requiredStandsForLottery} stands o más)</p>
+                <p className={`text-sm ${isDark ? "text-[#c81474]/70" : "text-gray-500"}`}>(Requisito actual: Haber calificado {ajustes.requiredStandsForLottery} stands o más)</p>
               </div>
 
-              <button onClick={toggleFullscreen} className="mb-6 flex items-center space-x-2 text-neutral-400 hover:text-white bg-neutral-800 px-4 py-2 rounded-lg transition-colors">
+              <button onClick={toggleFullscreen} className={`mb-6 flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors font-bold ${isDark ? "text-neutral-400 hover:text-white bg-neutral-800" : "text-gray-600 hover:text-gray-900 bg-white border border-gray-300"}`}>
                 <Maximize className="w-5 h-5" /> <span>Proyectar en Pantalla Completa</span>
               </button>
 
-              <div id="sorteo-container" className="relative w-full max-w-4xl min-h-112.5 py-12 px-6 bg-neutral-950/90 backdrop-blur-3xl border-2 border-neutral-800 shadow-[inset_0_0_100px_rgba(0,0,0,0.8)] flex flex-col justify-center items-center overflow-hidden mb-12 rounded-[3rem] [&:fullscreen]:rounded-none [&:fullscreen]:border-none [&:fullscreen]:max-w-none [&:fullscreen]:w-screen [&:fullscreen]:h-screen [&:fullscreen]:bg-neutral-950 [&:fullscreen]:flex [&:fullscreen]:items-center [&:fullscreen]:justify-center">
-                <div className={`absolute inset-0 bg-[conic-gradient(from_90deg,transparent,rgba(217,70,239,0.2),transparent)] ${isSpinning ? 'animate-spin' : ''} duration-3000 pointer-events-none`} />
+              <div id="sorteo-container" className={`relative w-full max-w-4xl min-h-112.5 py-12 px-6 border-2 shadow-2xl flex flex-col justify-center items-center overflow-hidden mb-12 rounded-[3rem] [&:fullscreen]:rounded-none [&:fullscreen]:border-none [&:fullscreen]:max-w-none [&:fullscreen]:w-screen [&:fullscreen]:h-screen [&:fullscreen]:flex [&:fullscreen]:items-center [&:fullscreen]:justify-center ${isDark ? "bg-neutral-950/90 backdrop-blur-3xl border-neutral-800 shadow-[inset_0_0_100px_rgba(0,0,0,0.8)] [&:fullscreen]:bg-neutral-950" : "bg-white border-gray-100 [&:fullscreen]:bg-white"}`}>
+                <div className={`absolute inset-0 bg-[conic-gradient(from_90deg,transparent,rgba(200,20,116,0.2),transparent)] ${isSpinning ? 'animate-spin' : ''} duration-3000 pointer-events-none`} />
 
                 {!isSpinning && !winner && (
                   <button onClick={iniciarSorteo} disabled={participantes.length === 0} className="relative group disabled:opacity-50 disabled:cursor-not-allowed z-10">
-                    <div className="absolute inset-0 bg-linear-to-r from-yellow-400 via-fuchsia-500 to-purple-600 rounded-full blur-xl group-hover:blur-2xl transition-all duration-300 opacity-70 group-hover:opacity-100 animate-pulse" />
-                    <div className="relative bg-linear-to-br from-neutral-900 to-black border-4 border-fuchsia-500 rounded-full w-52 h-52 p-4 flex flex-col items-center justify-center transform group-hover:scale-110 transition-transform shadow-[0_0_50px_rgba(217,70,239,0.5)]">
-                      <Play className="w-12 h-12 text-fuchsia-500 ml-2 mb-2 shrink-0" />
-                      <span className="text-white font-black text-lg uppercase tracking-wider text-center leading-tight">Iniciar<br/>Selección</span>
+                    <div className={`absolute inset-0 rounded-full blur-xl group-hover:blur-2xl transition-all duration-300 animate-pulse ${isDark ? "bg-linear-to-r from-yellow-400 via-[#c81474] to-purple-600 opacity-70 group-hover:opacity-100" : "bg-linear-to-r from-pink-400 via-[#c81474] to-purple-500 opacity-50 group-hover:opacity-80"}`} />
+                    <div className={`relative border-4 border-[#c81474] rounded-full w-52 h-52 p-4 flex flex-col items-center justify-center transform group-hover:scale-110 transition-transform shadow-xl ${isDark ? "bg-linear-to-br from-neutral-900 to-black" : "bg-white"}`}>
+                      <Play className="w-12 h-12 text-[#c81474] ml-2 mb-2 shrink-0" />
+                      <span className={`font-black text-lg uppercase tracking-wider text-center leading-tight ${isDark ? "text-white" : "text-gray-900"}`}>Iniciar<br/>Selección</span>
                     </div>
                   </button>
                 )}
 
                 {isSpinning && (
-                  <motion.div key={spinningName} initial={{ opacity: 0, scale: 0.5, y: 50 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 1.5, y: -50 }} transition={{ duration: 0.1 }} className="text-5xl md:text-8xl font-black text-transparent bg-clip-text bg-linear-to-b from-white to-neutral-500 uppercase tracking-tighter text-center px-4 w-full z-10">
+                  <motion.div key={spinningName} initial={{ opacity: 0, scale: 0.5, y: 50 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 1.5, y: -50 }} transition={{ duration: 0.1 }} className={`text-5xl md:text-8xl font-black uppercase tracking-tighter text-center px-4 w-full z-10 ${isDark ? "text-transparent bg-clip-text bg-linear-to-b from-white to-neutral-500" : "text-gray-900"}`}>
                     {spinningName}
                   </motion.div>
                 )}
 
                 {winner && (
                   <motion.div initial={{ scale: 0, rotate: -180 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", damping: 15 }} className="text-center z-10 w-full px-4 flex flex-col items-center">
-                    <Trophy className="w-24 h-24 text-yellow-400 mx-auto mb-6 drop-shadow-[0_0_30px_rgba(234,179,8,0.8)]" />
-                    <h2 className="text-4xl md:text-7xl font-black text-white uppercase tracking-tighter mb-2 drop-shadow-2xl leading-tight">
+                    <Trophy className="w-24 h-24 text-yellow-400 mx-auto mb-6 drop-shadow-md" />
+                    <h2 className={`text-4xl md:text-7xl font-black uppercase tracking-tighter mb-2 leading-tight ${isDark ? "text-white" : "text-gray-900"}`}>
                       {winner.nombres} {winner.apellidos}
                     </h2>
-                    <p className="text-2xl md:text-4xl text-purple-400 font-mono tracking-widest mb-4">
+                    <p className={`text-2xl md:text-4xl font-mono tracking-widest mb-4 ${isDark ? "text-purple-400" : "text-gray-500"}`}>
                       CC: {winner.username}
                     </p>
-                    <p className="text-xl md:text-3xl text-fuchsia-400 font-bold uppercase tracking-widest">
+                    <p className="text-xl md:text-3xl text-[#c81474] font-bold uppercase tracking-widest">
                       {winner.institucion || "Sin Institución"}
                     </p>
-                    <button onClick={() => {setWinner(null); cargarDatosSorteo();}} className="mt-10 bg-neutral-800 text-white px-8 py-3 rounded-full font-bold hover:bg-neutral-700 transition-all border border-neutral-700">
+                    <button onClick={() => {setWinner(null); cargarDatosSorteo();}} className="mt-10 bg-[#c81474] text-white px-8 py-3 rounded-full font-bold hover:bg-[#a61060] transition-all shadow-lg">
                       Realizar otra selección
                     </button>
                   </motion.div>
@@ -700,19 +693,19 @@ export default function MasterDashboard() {
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
               <div className="flex justify-between items-center mb-8">
                 <h1 className="text-4xl font-black uppercase">Historial de Sorteos</h1>
-                <p className="text-neutral-400 font-bold mt-1">Total Entregados: {historialPremios.length}</p>
+                <p className={`font-bold mt-1 ${isDark ? "text-neutral-400" : "text-gray-500"}`}>Total Entregados: {historialPremios.length}</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {historialPremios.length === 0 ? (
-                  <p className="text-neutral-500 col-span-full text-center py-10">Aún no hay sorteos registrados.</p>
+                  <p className={`col-span-full text-center py-10 ${isDark ? "text-neutral-500" : "text-gray-400"}`}>Aún no hay sorteos registrados.</p>
                 ) : (
                   historialPremios.map((premio: any) => (
-                    <div key={premio.id} onClick={() => abrirDetalles(premio.cliente, "GANADOR")} className="bg-neutral-900/80 border border-neutral-800 hover:border-fuchsia-500/50 p-6 rounded-3xl cursor-pointer transition-all hover:shadow-[0_0_30px_rgba(217,70,239,0.15)] group relative overflow-hidden">
+                    <div key={premio.id} onClick={() => abrirDetalles(premio.cliente, "GANADOR")} className={`border p-6 rounded-3xl cursor-pointer transition-all hover:border-[#c81474] hover:shadow-xl group relative overflow-hidden ${isDark ? "bg-neutral-900/80 border-neutral-800" : "bg-white border-gray-200"}`}>
                       
                       <button 
                         onClick={(e) => handleEliminarGanador(e, premio.id, `${premio.cliente.nombres} ${premio.cliente.apellidos}`)}
-                        className="absolute top-4 right-4 p-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-full transition-colors opacity-0 group-hover:opacity-100 z-10"
+                        className={`absolute top-4 right-4 p-2 rounded-full transition-colors opacity-0 group-hover:opacity-100 z-10 ${isDark ? "bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white" : "bg-red-50 text-red-500 hover:bg-red-500 hover:text-white"}`}
                         title="Eliminar premio del historial"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -721,15 +714,15 @@ export default function MasterDashboard() {
                       <div className="flex justify-between items-start mb-4 pr-8">
                         <Trophy className="w-8 h-8 text-yellow-500 group-hover:scale-110 transition-transform" />
                         <div className="text-right">
-                          <p className="text-sm text-neutral-300 font-bold">{new Date(premio.createdAt).toLocaleDateString()}</p>
-                          <p className="text-xs text-neutral-500">{new Date(premio.createdAt).toLocaleTimeString()}</p>
+                          <p className={`text-sm font-bold ${isDark ? "text-neutral-300" : "text-gray-700"}`}>{new Date(premio.createdAt).toLocaleDateString()}</p>
+                          <p className={`text-xs ${isDark ? "text-neutral-500" : "text-gray-500"}`}>{new Date(premio.createdAt).toLocaleTimeString()}</p>
                         </div>
                       </div>
-                      <h3 className="text-xl font-black text-white uppercase leading-tight mb-2 truncate" title={`${premio.cliente.nombres} ${premio.cliente.apellidos}`}>
+                      <h3 className={`text-xl font-black uppercase leading-tight mb-2 truncate ${isDark ? "text-white" : "text-gray-900"}`} title={`${premio.cliente.nombres} ${premio.cliente.apellidos}`}>
                         {premio.cliente.nombres} {premio.cliente.apellidos}
                       </h3>
-                      <p className="text-fuchsia-400 font-mono text-sm mb-2">ID: {premio.cliente.username}</p>
-                      <p className="text-neutral-400 text-sm truncate">{premio.cliente.institucion}</p>
+                      <p className="text-[#c81474] font-mono font-bold text-sm mb-2">ID: {premio.cliente.username}</p>
+                      <p className={`text-sm truncate ${isDark ? "text-neutral-400" : "text-gray-500"}`}>{premio.cliente.institucion}</p>
                     </div>
                   ))
                 )}
@@ -740,27 +733,41 @@ export default function MasterDashboard() {
           {/* ================= AJUSTES ================= */}
           {activeTab === "ajustes" && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl mx-auto mt-10">
-              <div className="bg-neutral-900/80 backdrop-blur-xl border border-neutral-800 p-10 rounded-3xl shadow-2xl">
-                <h1 className="text-3xl font-black uppercase mb-8 flex items-center border-b border-neutral-800 pb-4">
-                  <Settings className="w-8 h-8 mr-4 text-fuchsia-500" /> Configuración Global
+              <div className={`border p-10 rounded-3xl shadow-xl ${isDark ? "bg-neutral-900/80 backdrop-blur-xl border-neutral-800" : "bg-white border-gray-200"}`}>
+                <h1 className={`text-3xl font-black uppercase mb-8 flex items-center border-b pb-4 ${isDark ? "border-neutral-800" : "border-gray-200"}`}>
+                  <Settings className="w-8 h-8 mr-4 text-[#c81474]" /> Configuración
                 </h1>
+                
                 <div className="space-y-8">
-                  <div className="flex items-center justify-between p-4 bg-black/30 rounded-2xl border border-neutral-800">
+                  {/* SELECTOR DE TEMA CLARO/OSCURO */}
+                  <div className={`flex items-center justify-between p-4 rounded-2xl border ${isDark ? "bg-black/30 border-neutral-800" : "bg-gray-50 border-gray-200"}`}>
+                    <div>
+                      <h3 className="font-bold text-lg">Apariencia del Panel</h3>
+                      <p className={`text-sm ${isDark ? "text-neutral-400" : "text-gray-500"}`}>Activar modo {isDark ? "claro" : "oscuro"} para la interfaz.</p>
+                    </div>
+                    <button onClick={toggleTheme} className={`p-3 rounded-xl transition-all shadow-md flex items-center space-x-2 font-bold ${isDark ? "bg-white text-neutral-900 hover:bg-gray-200" : "bg-neutral-900 text-white hover:bg-neutral-800"}`}>
+                      {isDark ? <><Sun className="w-5 h-5"/> <span>Modo Claro</span></> : <><Moon className="w-5 h-5"/> <span>Modo Oscuro</span></>}
+                    </button>
+                  </div>
+
+                  <div className={`flex items-center justify-between p-4 rounded-2xl border ${isDark ? "bg-black/30 border-neutral-800" : "bg-gray-50 border-gray-200"}`}>
                     <div>
                       <h3 className="font-bold text-lg">Calificación por Estrellas</h3>
-                      <p className="text-sm text-neutral-400">Permitir a los visitantes dar 1 a 5 estrellas.</p>
+                      <p className={`text-sm ${isDark ? "text-neutral-400" : "text-gray-500"}`}>Permitir a los visitantes dar 1 a 5 estrellas.</p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer shrink-0">
                       <input type="checkbox" className="sr-only peer" checked={ajustes.activarEstrellas} onChange={(e) => setAjustes({...ajustes, activarEstrellas: e.target.checked})} />
-                      <div className="w-14 h-7 bg-neutral-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-fuchsia-500"></div>
+                      <div className={`w-14 h-7 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-[#c81474] ${isDark ? "bg-neutral-700" : "bg-gray-300"}`}></div>
                     </label>
                   </div>
-                  <div className="p-4 bg-black/30 rounded-2xl border border-neutral-800">
+                  
+                  <div className={`p-4 rounded-2xl border ${isDark ? "bg-black/30 border-neutral-800" : "bg-gray-50 border-gray-200"}`}>
                     <h3 className="font-bold text-lg mb-2">Requisito para Participación</h3>
-                    <p className="text-sm text-neutral-400 mb-4">¿Cuántos stands debe calificar un visitante para entrar al sorteo?</p>
-                    <input type="number" min="1" value={ajustes.requiredStandsForLottery} onChange={(e) => setAjustes({...ajustes, requiredStandsForLottery: Number(e.target.value)})} className="w-full bg-neutral-950 border border-fuchsia-500/50 rounded-xl p-4 text-2xl font-bold text-center text-white focus:outline-none focus:border-fuchsia-500 transition-colors" />
+                    <p className={`text-sm mb-4 ${isDark ? "text-neutral-400" : "text-gray-500"}`}>¿Cuántos stands debe calificar un visitante para entrar al sorteo?</p>
+                    <input type="number" min="1" value={ajustes.requiredStandsForLottery} onChange={(e) => setAjustes({...ajustes, requiredStandsForLottery: Number(e.target.value)})} className={`w-full rounded-xl p-4 text-2xl font-bold text-center focus:outline-none focus:border-[#c81474] transition-colors shadow-inner border ${isDark ? "bg-neutral-950 border-neutral-700 text-white" : "bg-white border-gray-300 text-gray-900"}`} />
                   </div>
-                  <button onClick={guardarConfiguracion} disabled={loading} className="w-full py-4 bg-linear-to-r from-fuchsia-600 to-purple-700 hover:from-fuchsia-500 hover:to-purple-600 text-white font-black text-lg uppercase tracking-widest rounded-xl transition-all shadow-[0_0_30px_rgba(217,70,239,0.3)] disabled:opacity-50">
+                  
+                  <button onClick={guardarConfiguracion} disabled={loading} className="w-full py-4 bg-[#c81474] hover:bg-[#a61060] text-white font-black text-lg uppercase tracking-widest rounded-xl transition-all shadow-lg disabled:opacity-50">
                     {loading ? "Guardando..." : "Guardar Cambios"}
                   </button>
                 </div>
@@ -774,24 +781,15 @@ export default function MasterDashboard() {
       {/* MODALES DEL SISTEMA (Con Clic por fuera para cerrar) */}
       {/* ==================================================== */}
       
-      {/* DIÁLOGO GLOBAL DE CONFIRMACIÓN */}
       <AnimatePresence>
         {confirmDialog.isOpen && (
-          <motion.div 
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
-            className="fixed inset-0 z-100 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
-            onClick={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
-          >
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} 
-              className="bg-neutral-900 border border-neutral-800 rounded-3xl p-8 max-w-sm w-full shadow-2xl relative text-center"
-              onClick={(e) => e.stopPropagation()}
-            >
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-100 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}>
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className={`border rounded-3xl p-8 max-w-sm w-full shadow-2xl relative text-center ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-gray-200"}`} onClick={(e) => e.stopPropagation()}>
               <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-              <h3 className="text-2xl font-bold text-white mb-3">¿Estás seguro?</h3>
-              <p className="text-neutral-400 mb-8">{confirmDialog.message}</p>
+              <h3 className="text-2xl font-bold mb-3">¿Estás seguro?</h3>
+              <p className={`mb-8 ${isDark ? "text-neutral-400" : "text-gray-600"}`}>{confirmDialog.message}</p>
               <div className="flex space-x-4">
-                <button onClick={() => setConfirmDialog({ ...confirmDialog, isOpen: false })} className="flex-1 px-4 py-3 bg-neutral-800 hover:bg-neutral-700 text-white rounded-xl font-bold transition-all">Cancelar</button>
+                <button onClick={() => setConfirmDialog({ ...confirmDialog, isOpen: false })} className={`flex-1 px-4 py-3 rounded-xl font-bold transition-all ${isDark ? "bg-neutral-800 hover:bg-neutral-700 text-white" : "bg-gray-100 hover:bg-gray-200 text-gray-900"}`}>Cancelar</button>
                 <button onClick={confirmDialog.onConfirm} className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold transition-all">Confirmar</button>
               </div>
             </motion.div>
@@ -802,20 +800,20 @@ export default function MasterDashboard() {
       <AnimatePresence>
         {isModalStandOpen && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => { setIsModalStandOpen(false); setLogoBase64(null); }}>
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-neutral-900 border border-neutral-800 rounded-3xl p-8 max-w-md w-full shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => { setIsModalStandOpen(false); setLogoBase64(null); }} className="absolute top-6 right-6 text-neutral-500 hover:text-white"><X className="w-6 h-6" /></button>
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className={`border rounded-3xl p-8 max-w-md w-full shadow-2xl relative ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-gray-200"}`} onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => { setIsModalStandOpen(false); setLogoBase64(null); }} className={`absolute top-6 right-6 hover:text-[#c81474] ${isDark ? "text-neutral-500" : "text-gray-400"}`}><X className="w-6 h-6" /></button>
               <h2 className="text-2xl font-bold mb-2">Agregar Stand Manual</h2>
               <form onSubmit={handleCrearStandManual} className="space-y-6 mt-6">
                 <div>
-                  <label className="block text-sm font-medium text-neutral-300 mb-2">Nombre del Stand</label>
-                  <input type="text" required value={nombreNuevoStand} onChange={(e) => setNombreNuevoStand(e.target.value)} className="w-full bg-neutral-950 border border-neutral-700 rounded-xl p-3 text-white focus:outline-none focus:border-fuchsia-500 transition-colors" />
+                  <label className={`block text-sm font-bold mb-2 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>Nombre del Stand</label>
+                  <input type="text" required value={nombreNuevoStand} onChange={(e) => setNombreNuevoStand(e.target.value)} className={`w-full border rounded-xl p-3 focus:outline-none focus:border-[#c81474] transition-colors ${isDark ? "bg-neutral-950 border-neutral-700 text-white" : "bg-white border-gray-300 text-gray-900"}`} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-neutral-300 mb-2">Logo del Stand (Opcional para QR)</label>
-                  <input type="file" accept="image/*" onChange={handleLogoUpload} className="w-full bg-neutral-950 border border-neutral-700 rounded-xl p-2 text-white text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-fuchsia-600 file:text-white hover:file:bg-fuchsia-500" />
-                  {logoBase64 && <div className="mt-3 flex justify-center"><img src={logoBase64} alt="Preview" className="h-16 w-16 object-cover rounded-full border-2 border-fuchsia-500" /></div>}
+                  <label className={`block text-sm font-bold mb-2 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>Logo del Stand (Opcional)</label>
+                  <input type="file" accept="image/*" onChange={handleLogoUpload} className={`w-full border rounded-xl p-2 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-[#c81474] file:text-white hover:file:bg-[#a61060] ${isDark ? "bg-neutral-950 border-neutral-700 text-white" : "bg-gray-50 border-gray-300 text-gray-900"}`} />
+                  {logoBase64 && <div className="mt-3 flex justify-center"><img src={logoBase64} alt="Preview" className="h-16 w-16 object-cover rounded-full border-2 border-[#c81474]" /></div>}
                 </div>
-                <button type="submit" disabled={loading || !nombreNuevoStand.trim()} className="w-full bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-bold py-3 px-4 rounded-xl transition-all disabled:opacity-50">Crear Stand</button>
+                <button type="submit" disabled={loading || !nombreNuevoStand.trim()} className="w-full bg-[#c81474] hover:bg-[#a61060] text-white font-bold py-3 px-4 rounded-xl transition-all shadow-md disabled:opacity-50">Crear Stand</button>
               </form>
             </motion.div>
           </motion.div>
@@ -825,24 +823,24 @@ export default function MasterDashboard() {
       <AnimatePresence>
         {isEditStandModalOpen && editingStand && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setIsEditStandModalOpen(false)}>
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-neutral-900 border border-neutral-800 rounded-3xl p-8 max-w-md w-full shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setIsEditStandModalOpen(false)} className="absolute top-6 right-6 text-neutral-500 hover:text-white"><X className="w-6 h-6" /></button>
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className={`border rounded-3xl p-8 max-w-md w-full shadow-2xl relative ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-gray-200"}`} onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => setIsEditStandModalOpen(false)} className={`absolute top-6 right-6 hover:text-[#c81474] ${isDark ? "text-neutral-500" : "text-gray-400"}`}><X className="w-6 h-6" /></button>
               <h2 className="text-2xl font-bold mb-6">Editar Stand</h2>
               <form onSubmit={guardarEdicionStand} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-neutral-300 mb-2">Nombre del Stand</label>
-                  <input type="text" required value={editingStand.nombreStand} onChange={(e) => setEditingStand({...editingStand, nombreStand: e.target.value})} className="w-full bg-neutral-950 border border-neutral-700 rounded-xl p-3 text-white focus:outline-none focus:border-fuchsia-500" />
+                  <label className={`block text-sm font-bold mb-2 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>Nombre del Stand</label>
+                  <input type="text" required value={editingStand.nombreStand} onChange={(e) => setEditingStand({...editingStand, nombreStand: e.target.value})} className={`w-full border rounded-xl p-3 focus:outline-none focus:border-[#c81474] ${isDark ? "bg-neutral-950 border-neutral-700 text-white" : "bg-white border-gray-300 text-gray-900"}`} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-neutral-300 mb-2">Logo del Stand</label>
-                  <input type="file" accept="image/*" onChange={handleEditLogoUpload} className="w-full bg-neutral-950 border border-neutral-700 rounded-xl p-2 text-white text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-fuchsia-600 file:text-white hover:file:bg-fuchsia-500" />
-                  {editingStand.logo && <div className="mt-3 flex justify-center"><img src={editingStand.logo} alt="Preview" className="h-16 w-16 object-cover rounded-full border-2 border-fuchsia-500" /></div>}
+                  <label className={`block text-sm font-bold mb-2 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>Logo del Stand</label>
+                  <input type="file" accept="image/*" onChange={handleEditLogoUpload} className={`w-full border rounded-xl p-2 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-[#c81474] file:text-white hover:file:bg-[#a61060] ${isDark ? "bg-neutral-950 border-neutral-700 text-white" : "bg-gray-50 border-gray-300 text-gray-900"}`} />
+                  {editingStand.logo && <div className="mt-3 flex justify-center"><img src={editingStand.logo} alt="Preview" className="h-16 w-16 object-cover rounded-full border-2 border-[#c81474]" /></div>}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-neutral-300 mb-2">Nueva Contraseña (Opcional)</label>
-                  <input type="text" placeholder="Dejar en blanco para no cambiar" value={editingStand.password} onChange={(e) => setEditingStand({...editingStand, password: e.target.value})} className="w-full bg-neutral-950 border border-neutral-700 rounded-xl p-3 text-white focus:outline-none focus:border-fuchsia-500" />
+                  <label className={`block text-sm font-bold mb-2 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>Nueva Contraseña (Opcional)</label>
+                  <input type="text" placeholder="Dejar en blanco para no cambiar" value={editingStand.password} onChange={(e) => setEditingStand({...editingStand, password: e.target.value})} className={`w-full border rounded-xl p-3 focus:outline-none focus:border-[#c81474] ${isDark ? "bg-neutral-950 border-neutral-700 text-white" : "bg-white border-gray-300 text-gray-900"}`} />
                 </div>
-                <button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-xl transition-all disabled:opacity-50 mt-4">Guardar Cambios</button>
+                <button type="submit" disabled={loading} className="w-full bg-[#c81474] hover:bg-[#a61060] text-white font-bold py-3 px-4 rounded-xl transition-all shadow-md disabled:opacity-50 mt-4">Guardar Cambios</button>
               </form>
             </motion.div>
           </motion.div>
@@ -852,45 +850,45 @@ export default function MasterDashboard() {
       <AnimatePresence>
         {isEditClienteModalOpen && editingCliente && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setIsEditClienteModalOpen(false)}>
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-neutral-900 border border-neutral-800 rounded-3xl p-8 max-w-md w-full shadow-2xl relative max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setIsEditClienteModalOpen(false)} className="absolute top-6 right-6 text-neutral-500 hover:text-white"><X className="w-6 h-6" /></button>
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className={`border rounded-3xl p-8 max-w-md w-full shadow-2xl relative max-h-[90vh] flex flex-col ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-gray-200"}`} onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => setIsEditClienteModalOpen(false)} className={`absolute top-6 right-6 hover:text-[#c81474] ${isDark ? "text-neutral-500" : "text-gray-400"}`}><X className="w-6 h-6" /></button>
               
               <h2 className="text-2xl font-bold mb-6 shrink-0">Editar Visitante</h2>
               
               <form onSubmit={guardarEdicionCliente} className="flex flex-col flex-1 overflow-hidden">
-                <div className="space-y-4 overflow-y-auto pr-2 pb-4 flex-1" style={{ scrollbarWidth: "thin", scrollbarColor: "#d946ef transparent" }}>
+                <div className="space-y-4 overflow-y-auto pr-2 pb-4 flex-1" style={{ scrollbarWidth: "thin", scrollbarColor: "#c81474 transparent" }}>
                   <div>
-                    <label className="block text-sm font-medium text-neutral-300 mb-2">Nombres</label>
-                    <input type="text" required value={editingCliente.nombres} onChange={(e) => setEditingCliente({...editingCliente, nombres: e.target.value})} className="w-full bg-neutral-950 border border-neutral-700 rounded-xl p-3 text-white focus:outline-none focus:border-purple-500" />
+                    <label className={`block text-sm font-bold mb-2 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>Nombres</label>
+                    <input type="text" required value={editingCliente.nombres} onChange={(e) => setEditingCliente({...editingCliente, nombres: e.target.value})} className={`w-full border rounded-xl p-3 focus:outline-none focus:border-[#c81474] ${isDark ? "bg-neutral-950 border-neutral-700 text-white" : "bg-white border-gray-300 text-gray-900"}`} />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-neutral-300 mb-2">Apellidos</label>
-                    <input type="text" required value={editingCliente.apellidos} onChange={(e) => setEditingCliente({...editingCliente, apellidos: e.target.value})} className="w-full bg-neutral-950 border border-neutral-700 rounded-xl p-3 text-white focus:outline-none focus:border-purple-500" />
+                    <label className={`block text-sm font-bold mb-2 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>Apellidos</label>
+                    <input type="text" required value={editingCliente.apellidos} onChange={(e) => setEditingCliente({...editingCliente, apellidos: e.target.value})} className={`w-full border rounded-xl p-3 focus:outline-none focus:border-[#c81474] ${isDark ? "bg-neutral-950 border-neutral-700 text-white" : "bg-white border-gray-300 text-gray-900"}`} />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-neutral-300 mb-2">Documento (Usuario/Pass)</label>
-                    <input type="text" required value={editingCliente.username} onChange={(e) => setEditingCliente({...editingCliente, username: e.target.value})} className="w-full bg-neutral-950 border border-neutral-700 rounded-xl p-3 text-white focus:outline-none focus:border-purple-500" />
+                    <label className={`block text-sm font-bold mb-2 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>Documento (Usuario/Pass)</label>
+                    <input type="text" required value={editingCliente.username} onChange={(e) => setEditingCliente({...editingCliente, username: e.target.value})} className={`w-full border rounded-xl p-3 focus:outline-none focus:border-[#c81474] ${isDark ? "bg-neutral-950 border-neutral-700 text-white" : "bg-white border-gray-300 text-gray-900"}`} />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-neutral-300 mb-2">Institución</label>
-                    <input type="text" value={editingCliente.institucion || ""} onChange={(e) => setEditingCliente({...editingCliente, institucion: e.target.value})} className="w-full bg-neutral-950 border border-neutral-700 rounded-xl p-3 text-white focus:outline-none focus:border-purple-500" />
+                    <label className={`block text-sm font-bold mb-2 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>Institución</label>
+                    <input type="text" value={editingCliente.institucion || ""} onChange={(e) => setEditingCliente({...editingCliente, institucion: e.target.value})} className={`w-full border rounded-xl p-3 focus:outline-none focus:border-[#c81474] ${isDark ? "bg-neutral-950 border-neutral-700 text-white" : "bg-white border-gray-300 text-gray-900"}`} />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-neutral-300 mb-2">Cargo</label>
-                    <input type="text" value={editingCliente.cargo || ""} onChange={(e) => setEditingCliente({...editingCliente, cargo: e.target.value})} className="w-full bg-neutral-950 border border-neutral-700 rounded-xl p-3 text-white focus:outline-none focus:border-purple-500" />
+                    <label className={`block text-sm font-bold mb-2 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>Cargo</label>
+                    <input type="text" value={editingCliente.cargo || ""} onChange={(e) => setEditingCliente({...editingCliente, cargo: e.target.value})} className={`w-full border rounded-xl p-3 focus:outline-none focus:border-[#c81474] ${isDark ? "bg-neutral-950 border-neutral-700 text-white" : "bg-white border-gray-300 text-gray-900"}`} />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-neutral-300 mb-2">Teléfono</label>
-                    <input type="text" value={editingCliente.telefono || ""} onChange={(e) => setEditingCliente({...editingCliente, telefono: e.target.value})} className="w-full bg-neutral-950 border border-neutral-700 rounded-xl p-3 text-white focus:outline-none focus:border-purple-500" />
+                    <label className={`block text-sm font-bold mb-2 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>Teléfono</label>
+                    <input type="text" value={editingCliente.telefono || ""} onChange={(e) => setEditingCliente({...editingCliente, telefono: e.target.value})} className={`w-full border rounded-xl p-3 focus:outline-none focus:border-[#c81474] ${isDark ? "bg-neutral-950 border-neutral-700 text-white" : "bg-white border-gray-300 text-gray-900"}`} />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-neutral-300 mb-2">Correo Electrónico</label>
-                    <input type="email" value={editingCliente.correo || ""} onChange={(e) => setEditingCliente({...editingCliente, correo: e.target.value})} className="w-full bg-neutral-950 border border-neutral-700 rounded-xl p-3 text-white focus:outline-none focus:border-purple-500" />
+                    <label className={`block text-sm font-bold mb-2 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>Correo Electrónico</label>
+                    <input type="email" value={editingCliente.correo || ""} onChange={(e) => setEditingCliente({...editingCliente, correo: e.target.value})} className={`w-full border rounded-xl p-3 focus:outline-none focus:border-[#c81474] ${isDark ? "bg-neutral-950 border-neutral-700 text-white" : "bg-white border-gray-300 text-gray-900"}`} />
                   </div>
                 </div>
                 
-                <div className="pt-4 mt-2 border-t border-neutral-800 shrink-0">
-                  <button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-xl transition-all disabled:opacity-50">Guardar Cambios</button>
+                <div className={`pt-4 mt-2 border-t shrink-0 ${isDark ? "border-neutral-800" : "border-gray-200"}`}>
+                  <button type="submit" disabled={loading} className="w-full bg-[#c81474] hover:bg-[#a61060] text-white font-bold py-3 px-4 rounded-xl transition-all shadow-md disabled:opacity-50">Guardar Cambios</button>
                 </div>
               </form>
             </motion.div>
@@ -901,61 +899,61 @@ export default function MasterDashboard() {
       <AnimatePresence>
         {detallesAbiertos && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setDetallesAbiertos(false)}>
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-neutral-900 border border-neutral-800 rounded-3xl p-8 max-w-4xl w-full shadow-2xl relative max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setDetallesAbiertos(false)} className="absolute top-6 right-6 text-neutral-500 hover:text-white bg-neutral-800 p-2 rounded-full"><X className="w-5 h-5" /></button>
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className={`border rounded-3xl p-8 max-w-4xl w-full shadow-2xl relative max-h-[80vh] flex flex-col ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-gray-200"}`} onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => setDetallesAbiertos(false)} className={`absolute top-6 right-6 p-2 rounded-full transition-colors ${isDark ? "text-neutral-500 hover:text-white bg-neutral-800 hover:bg-neutral-700" : "text-gray-500 hover:text-gray-900 bg-gray-100 hover:bg-gray-200"}`}><X className="w-5 h-5" /></button>
               
               {tipoDetalle === "GANADOR" ? (
                 <div>
-                  <h2 className="text-3xl font-bold text-yellow-400 mb-6 uppercase tracking-widest border-b border-neutral-800 pb-4 flex items-center">
+                  <h2 className={`text-3xl font-bold mb-6 uppercase tracking-widest border-b pb-4 flex items-center ${isDark ? "text-yellow-400 border-neutral-800" : "text-yellow-600 border-gray-200"}`}>
                     <Trophy className="w-8 h-8 mr-3" /> Perfil del Ganador
                   </h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-lg">
-                    <div><p className="text-neutral-500 text-sm">Nombres</p><p className="font-bold">{entidadSeleccionada?.nombres}</p></div>
-                    <div><p className="text-neutral-500 text-sm">Apellidos</p><p className="font-bold">{entidadSeleccionada?.apellidos}</p></div>
-                    <div><p className="text-neutral-500 text-sm">Documento</p><p className="font-mono text-purple-400">{entidadSeleccionada?.username}</p></div>
-                    <div><p className="text-neutral-500 text-sm">Institución</p><p className="font-bold">{entidadSeleccionada?.institucion || "N/A"}</p></div>
-                    <div><p className="text-neutral-500 text-sm">Cargo</p><p className="font-bold">{entidadSeleccionada?.cargo || "N/A"}</p></div>
-                    <div><p className="text-neutral-500 text-sm">Teléfono</p><p className="font-bold">{entidadSeleccionada?.telefono || "N/A"}</p></div>
-                    <div className="md:col-span-2"><p className="text-neutral-500 text-sm">Correo</p><p className="font-bold text-blue-400">{entidadSeleccionada?.correo || "N/A"}</p></div>
-                    <div className="md:col-span-2 mt-4 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
-                      <p className="text-yellow-500 font-bold flex items-center"><Star className="w-5 h-5 mr-2 fill-yellow-500" /> Stands Calificados: {entidadSeleccionada?._count?.calificacionesDadas}</p>
+                    <div><p className={`text-sm ${isDark ? "text-neutral-500" : "text-gray-500"}`}>Nombres</p><p className="font-bold">{entidadSeleccionada?.nombres}</p></div>
+                    <div><p className={`text-sm ${isDark ? "text-neutral-500" : "text-gray-500"}`}>Apellidos</p><p className="font-bold">{entidadSeleccionada?.apellidos}</p></div>
+                    <div><p className={`text-sm ${isDark ? "text-neutral-500" : "text-gray-500"}`}>Documento</p><p className="font-mono text-[#c81474]">{entidadSeleccionada?.username}</p></div>
+                    <div><p className={`text-sm ${isDark ? "text-neutral-500" : "text-gray-500"}`}>Institución</p><p className="font-bold">{entidadSeleccionada?.institucion || "N/A"}</p></div>
+                    <div><p className={`text-sm ${isDark ? "text-neutral-500" : "text-gray-500"}`}>Cargo</p><p className="font-bold">{entidadSeleccionada?.cargo || "N/A"}</p></div>
+                    <div><p className={`text-sm ${isDark ? "text-neutral-500" : "text-gray-500"}`}>Teléfono</p><p className="font-bold">{entidadSeleccionada?.telefono || "N/A"}</p></div>
+                    <div className="md:col-span-2"><p className={`text-sm ${isDark ? "text-neutral-500" : "text-gray-500"}`}>Correo</p><p className="font-bold text-[#c81474]">{entidadSeleccionada?.correo || "N/A"}</p></div>
+                    <div className={`md:col-span-2 mt-4 p-4 border rounded-xl ${isDark ? "bg-yellow-500/10 border-yellow-500/30 text-yellow-500" : "bg-yellow-50 border-yellow-200 text-yellow-700"}`}>
+                      <p className="font-bold flex items-center"><Star className={`w-5 h-5 mr-2 ${isDark ? "fill-yellow-500" : "fill-yellow-500"}`} /> Stands Calificados: {entidadSeleccionada?._count?.calificacionesDadas}</p>
                     </div>
                   </div>
                 </div>
               ) : (
                 <>
-                  <h2 className="text-2xl font-bold text-fuchsia-400 mb-2 uppercase tracking-widest">
+                  <h2 className="text-2xl font-bold text-[#c81474] mb-2 uppercase tracking-widest">
                     Auditoría: {tipoDetalle === "STAND" ? entidadSeleccionada?.nombreStand : `${entidadSeleccionada?.nombres} ${entidadSeleccionada?.apellidos}`}
                   </h2>
-                  <p className="text-neutral-400 mb-6 border-b border-neutral-800 pb-4">Total de registros: {historialDetallado.length}</p>
+                  <p className={`mb-6 border-b pb-4 ${isDark ? "text-neutral-400 border-neutral-800" : "text-gray-500 border-gray-200"}`}>Total de registros: {historialDetallado.length}</p>
 
                   <div className="overflow-y-auto flex-1 pr-2 space-y-4">
                     {historialDetallado.length === 0 ? (
-                      <p className="text-center text-neutral-500 py-10">No hay registros para mostrar.</p>
+                      <p className={`text-center py-10 ${isDark ? "text-neutral-500" : "text-gray-500"}`}>No hay registros para mostrar.</p>
                     ) : (
                       historialDetallado.map((h: any) => (
-                        <div key={h.id} className="bg-neutral-950/50 border border-neutral-800 rounded-xl p-5">
+                        <div key={h.id} className={`border rounded-xl p-5 ${isDark ? "bg-neutral-950/50 border-neutral-800" : "bg-gray-50 border-gray-200"}`}>
                           <div className="flex justify-between items-start mb-2">
                             <div>
-                              <p className="font-bold text-white text-lg">
+                              <p className={`font-bold text-lg ${isDark ? "text-white" : "text-gray-900"}`}>
                                 {tipoDetalle === "STAND" ? `${h.cliente.nombres} ${h.cliente.apellidos}` : h.stand.nombreStand}
                               </p>
                               {tipoDetalle === "STAND" && (
-                                <p className="text-xs text-purple-400 font-mono">Doc: {h.cliente.username} - {h.cliente.institucion}</p>
+                                <p className="text-xs text-[#c81474] font-mono">Doc: {h.cliente.username} - {h.cliente.institucion}</p>
                               )}
                             </div>
                             <div className="text-right">
-                              <span className="text-xs text-neutral-500 block mb-1">{new Date(h.createdAt).toLocaleDateString()} {new Date(h.createdAt).toLocaleTimeString()}</span>
+                              <span className={`text-xs block mb-1 ${isDark ? "text-neutral-500" : "text-gray-500"}`}>{new Date(h.createdAt).toLocaleDateString()} {new Date(h.createdAt).toLocaleTimeString()}</span>
                               {h.estrellas && (
-                                <span className="bg-yellow-500/20 text-yellow-500 font-bold px-2 py-1 rounded-md inline-flex items-center text-sm">
+                                <span className={`font-bold px-2 py-1 rounded-md inline-flex items-center text-sm ${isDark ? "bg-yellow-500/20 text-yellow-500" : "bg-yellow-100 text-yellow-700 border border-yellow-200"}`}>
                                   {h.estrellas} <Star className="w-3 h-3 ml-1 fill-yellow-500" />
                                 </span>
                               )}
                             </div>
                           </div>
-                          <div className="bg-neutral-900 p-3 rounded-lg flex items-start space-x-3">
-                            <MessageSquare className="w-4 h-4 text-neutral-500 mt-1 shrink-0" />
-                            <p className="text-neutral-300 text-sm italic">"{h.comentario}"</p>
+                          <div className={`p-3 rounded-lg flex items-start space-x-3 border ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-gray-200"}`}>
+                            <MessageSquare className={`w-4 h-4 mt-1 shrink-0 ${isDark ? "text-neutral-500" : "text-gray-400"}`} />
+                            <p className={`text-sm italic ${isDark ? "text-neutral-300" : "text-gray-700"}`}>"{h.comentario}"</p>
                           </div>
                         </div>
                       ))
