@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getSession, signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { LogOut, Star, CheckCircle, MapPin, Activity, Camera, X } from "lucide-react";
 import { obtenerEstadisticasCliente } from "@/actions/clienteDashboard";
@@ -13,6 +14,7 @@ export default function ClienteDashboard() {
   
   // Nuevo estado para el modal del escáner
   const [escanerAbierto, setEscanerAbierto] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -27,35 +29,53 @@ export default function ClienteDashboard() {
     fetchUserData();
   }, []);
 
-  // Lógica de importación dinámica para evitar errores de SSR en Next.js con el escáner
+  // SOLUCIÓN 1 Y 2: Escáner de encendido directo y enrutamiento interno
   useEffect(() => {
+    let html5QrCode: any = null;
+
     if (escanerAbierto) {
-      let scanner: any = null;
-      import("html5-qrcode").then(({ Html5QrcodeScanner }) => {
-        scanner = new Html5QrcodeScanner(
-          "qr-reader",
-          { fps: 10, qrbox: { width: 250, height: 250 } },
-          false
-        );
-        scanner.render(
+      import("html5-qrcode").then(({ Html5Qrcode }) => {
+        html5QrCode = new Html5Qrcode("qr-reader");
+        
+        // Al usar start(), pedimos permisos de cámara y encendemos de INMEDIATO
+        html5QrCode.start(
+          { facingMode: "environment" }, // Forzamos la cámara trasera si está en celular
+          { fps: 15, qrbox: { width: 250, height: 250 } },
           (decodedText: string) => {
-            scanner.clear();
-            setEscanerAbierto(false);
-            window.location.href = decodedText; // Te lleva directo a calificar el stand
+            // Cuando lee el QR, apagamos la cámara inmediatamente
+            html5QrCode.stop().then(() => {
+              setEscanerAbierto(false);
+              
+              // SOLUCIÓN A LA SESIÓN: 
+              // Convertimos la URL externa a una ruta interna de Next.js
+              // Así no recargamos la página completa y la sesión NO se pierde.
+              try {
+                const urlObj = new URL(decodedText);
+                router.push(urlObj.pathname); // Ej: router.push('/calificar/123')
+              } catch (e) {
+                router.push(decodedText);
+              }
+            });
           },
           (err: any) => {
-            // Ignoramos errores de lectura en tiempo real
+            // Ignoramos los errores constantes de escaneo (ocurren mientras busca el QR)
           }
-        );
+        ).catch((err: any) => {
+          console.error("No se pudo iniciar la cámara:", err);
+          // Aquí podríamos poner una alerta si el usuario deniega la cámara
+        });
       });
-
-      return () => {
-        if (scanner) {
-          scanner.clear().catch((e: any) => console.log("Cerrando escáner...", e));
-        }
-      };
     }
-  }, [escanerAbierto]);
+
+    return () => {
+      // Limpiamos la cámara si el usuario cierra el modal abruptamente
+      if (html5QrCode) {
+        try {
+          html5QrCode.stop().catch(() => {});
+        } catch (error) {}
+      }
+    };
+  }, [escanerAbierto, router]);
 
   if (loading) {
     return <div className="min-h-screen bg-neutral-950 flex justify-center items-center text-[#c81474]">Cargando tu perfil...</div>;
@@ -63,7 +83,6 @@ export default function ClienteDashboard() {
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white flex flex-col relative overflow-hidden">
-      {/* Luces de fondo actualizadas a color #c81474 */}
       <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-[#c81474]/10 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-10%] left-[-10%] w-96 h-96 bg-purple-600/10 rounded-full blur-[120px] pointer-events-none" />
 
@@ -71,7 +90,6 @@ export default function ClienteDashboard() {
       <header className="bg-neutral-900/80 backdrop-blur-md border-b border-[#c81474]/20 px-6 py-4 flex justify-between items-center relative z-10 top-0">
         <div className="flex-1 mr-4">
           <p className="text-neutral-400 text-xs tracking-widest uppercase">Visitante VIP</p>
-          {/* SOLUCIÓN: Quitamos 'truncate max-w-50' y agregamos 'break-words leading-tight' para mostrar el nombre completo */}
           <h1 className="text-xl font-bold text-transparent bg-clip-text bg-linear-to-r from-[#c81474] to-pink-500 wrap-break-word leading-tight">
             {user?.name}
           </h1>
@@ -86,7 +104,7 @@ export default function ClienteDashboard() {
 
       <main className="flex-1 p-6 max-w-2xl mx-auto w-full relative z-10">
         
-        {/* BOTÓN DE ESCÁNER DE CÁMARA NATIVO */}
+        {/* BOTÓN DE ESCÁNER DE CÁMARA INMEDIATO */}
         <motion.button
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -176,7 +194,7 @@ export default function ClienteDashboard() {
             >
               <button 
                 onClick={() => setEscanerAbierto(false)} 
-                className="absolute top-4 right-4 text-neutral-400 hover:text-white bg-neutral-800 p-2 rounded-full"
+                className="absolute top-4 right-4 text-neutral-400 hover:text-white bg-neutral-800 p-2 rounded-full z-50"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -185,8 +203,9 @@ export default function ClienteDashboard() {
                 Escanear Stand
               </h2>
               
-              {/* Contenedor donde la librería de HTML5 inyecta el video de la cámara */}
-              <div id="qr-reader" className="w-full max-w-sm rounded-2xl overflow-hidden border-4 border-[#c81474]"></div>
+              <div id="qr-reader" className="w-full max-w-sm rounded-2xl overflow-hidden border-4 border-[#c81474] min-h-75 flex items-center justify-center bg-black">
+                {/* La librería inyectará el video aquí */}
+              </div>
               
               <p className="text-neutral-400 mt-6 text-center text-sm font-medium">
                 Apunta tu cámara al código QR proporcionado por el stand para evaluarlo.
