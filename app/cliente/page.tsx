@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { getSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { LogOut, Star, CheckCircle, MapPin, Activity, Camera, X } from "lucide-react";
+import { LogOut, Star, CheckCircle, MapPin, Activity, Camera, X, Sun, Moon } from "lucide-react";
 import { obtenerEstadisticasCliente } from "@/actions/clienteDashboard";
 
 export default function ClienteDashboard() {
@@ -12,11 +12,16 @@ export default function ClienteDashboard() {
   const [estadisticas, setEstadisticas] = useState({ total: 0, historial: [] as any[] });
   const [loading, setLoading] = useState(true);
   
-  // Nuevo estado para el modal del escáner
+  // Estados nuevos: Tema y Escáner
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [escanerAbierto, setEscanerAbierto] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
+    // Cargar preferencia de tema
+    const savedTheme = localStorage.getItem("cliente-theme") as "dark" | "light";
+    if (savedTheme) setTheme(savedTheme);
+
     const fetchUserData = async () => {
       const session = await getSession();
       if (session?.user) {
@@ -29,7 +34,15 @@ export default function ClienteDashboard() {
     fetchUserData();
   }, []);
 
-  // SOLUCIÓN 1 Y 2: Escáner de encendido directo y enrutamiento interno
+  const toggleTheme = () => {
+    const newTheme = theme === "dark" ? "light" : "dark";
+    setTheme(newTheme);
+    localStorage.setItem("cliente-theme", newTheme);
+  };
+
+  const isDark = theme === "dark";
+
+  // Lógica del Escáner Nativo Integrado (Inmediato)
   useEffect(() => {
     let html5QrCode: any = null;
 
@@ -37,74 +50,74 @@ export default function ClienteDashboard() {
       import("html5-qrcode").then(({ Html5Qrcode }) => {
         html5QrCode = new Html5Qrcode("qr-reader");
         
-        // Al usar start(), pedimos permisos de cámara y encendemos de INMEDIATO
         html5QrCode.start(
-          { facingMode: "environment" }, // Forzamos la cámara trasera si está en celular
+          { facingMode: "environment" },
           { fps: 15, qrbox: { width: 250, height: 250 } },
           (decodedText: string) => {
-            // Cuando lee el QR, apagamos la cámara inmediatamente
             html5QrCode.stop().then(() => {
               setEscanerAbierto(false);
-              
-              // SOLUCIÓN A LA SESIÓN: 
-              // Convertimos la URL externa a una ruta interna de Next.js
-              // Así no recargamos la página completa y la sesión NO se pierde.
               try {
                 const urlObj = new URL(decodedText);
-                router.push(urlObj.pathname); // Ej: router.push('/calificar/123')
+                router.push(urlObj.pathname);
               } catch (e) {
                 router.push(decodedText);
               }
             });
           },
           (err: any) => {
-            // Ignoramos los errores constantes de escaneo (ocurren mientras busca el QR)
+            // Se ignoran los errores de búsqueda en tiempo real
           }
         ).catch((err: any) => {
           console.error("No se pudo iniciar la cámara:", err);
-          // Aquí podríamos poner una alerta si el usuario deniega la cámara
         });
       });
     }
 
     return () => {
-      // Limpiamos la cámara si el usuario cierra el modal abruptamente
       if (html5QrCode) {
-        try {
-          html5QrCode.stop().catch(() => {});
-        } catch (error) {}
+        try { html5QrCode.stop().catch(() => {}); } catch (error) {}
       }
     };
   }, [escanerAbierto, router]);
 
   if (loading) {
-    return <div className="min-h-screen bg-neutral-950 flex justify-center items-center text-[#c81474]">Cargando tu perfil...</div>;
+    return <div className={`min-h-screen flex justify-center items-center font-bold ${isDark ? "bg-neutral-950 text-[#c81474]" : "bg-gray-50 text-[#c81474]"}`}>Cargando tu perfil...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-white flex flex-col relative overflow-hidden">
-      <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-[#c81474]/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] left-[-10%] w-96 h-96 bg-purple-600/10 rounded-full blur-[120px] pointer-events-none" />
+    <div className={`min-h-screen flex flex-col relative overflow-hidden transition-colors duration-300 ${isDark ? "bg-neutral-950 text-white" : "bg-gray-50 text-gray-900"}`}>
+      {/* Luces de fondo (Solo en modo oscuro) */}
+      {isDark && (
+        <>
+          <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-[#c81474]/10 rounded-full blur-[120px] pointer-events-none" />
+          <div className="absolute bottom-[-10%] left-[-10%] w-96 h-96 bg-purple-600/10 rounded-full blur-[120px] pointer-events-none" />
+        </>
+      )}
 
       {/* Navbar Móvil */}
-      <header className="bg-neutral-900/80 backdrop-blur-md border-b border-[#c81474]/20 px-6 py-4 flex justify-between items-center relative z-10 top-0">
+      <header className={`px-6 py-4 flex justify-between items-center relative z-10 top-0 border-b ${isDark ? "bg-neutral-900/80 backdrop-blur-md border-[#c81474]/20" : "bg-white/90 backdrop-blur-md border-gray-200 shadow-sm"}`}>
         <div className="flex-1 mr-4">
-          <p className="text-neutral-400 text-xs tracking-widest uppercase">Visitante VIP</p>
+          <p className={`text-xs tracking-widest uppercase font-bold ${isDark ? "text-neutral-400" : "text-gray-500"}`}>Visitante VIP</p>
           <h1 className="text-xl font-bold text-transparent bg-clip-text bg-linear-to-r from-[#c81474] to-pink-500 wrap-break-word leading-tight">
             {user?.name}
           </h1>
         </div>
-        <button
-          onClick={() => signOut({ callbackUrl: "/login" })}
-          className="flex items-center space-x-2 text-neutral-400 hover:text-red-400 transition-colors bg-neutral-800/50 p-2 rounded-full shrink-0"
-        >
-          <LogOut className="w-5 h-5" />
-        </button>
+        <div className="flex items-center space-x-2 shrink-0">
+          <button onClick={toggleTheme} className={`p-2 rounded-full transition-colors ${isDark ? "bg-neutral-800/50 text-yellow-400 hover:bg-neutral-700" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+            {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </button>
+          <button
+            onClick={() => signOut({ callbackUrl: "/login" })}
+            className={`flex items-center space-x-2 p-2 rounded-full transition-colors ${isDark ? "text-neutral-400 hover:text-red-400 bg-neutral-800/50" : "text-gray-500 hover:text-red-500 bg-gray-100"}`}
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
+        </div>
       </header>
 
       <main className="flex-1 p-6 max-w-2xl mx-auto w-full relative z-10">
         
-        {/* BOTÓN DE ESCÁNER DE CÁMARA INMEDIATO */}
+        {/* BOTÓN DE ESCÁNER DE CÁMARA */}
         <motion.button
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -119,13 +132,12 @@ export default function ClienteDashboard() {
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-linear-to-br from-neutral-900 to-neutral-950 border border-[#c81474]/30 rounded-3xl p-8 text-center shadow-[0_0_30px_rgba(200,20,116,0.15)] mb-8"
+          className={`border rounded-3xl p-8 text-center shadow-[0_0_30px_rgba(200,20,116,0.15)] mb-8 ${isDark ? "bg-linear-to-br from-neutral-900 to-neutral-950 border-[#c81474]/30" : "bg-white border-gray-200"}`}
         >
           <Activity className="w-10 h-10 text-[#c81474] mx-auto mb-4" />
-          <h2 className="text-6xl font-black text-white mb-2">{estadisticas.total}</h2>
+          <h2 className={`text-6xl font-black mb-2 ${isDark ? "text-white" : "text-gray-900"}`}>{estadisticas.total}</h2>
           <p className="text-[#c81474] font-bold uppercase tracking-widest text-sm">Stands Calificados</p>
-          <p className="text-neutral-400 mt-4 text-sm">
+          <p className={`mt-4 text-sm font-medium ${isDark ? "text-neutral-400" : "text-gray-500"}`}>
             ¡Sigue escaneando códigos QR para completar tu recorrido!
           </p>
         </motion.div>
@@ -136,25 +148,25 @@ export default function ClienteDashboard() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <h3 className="text-lg font-bold mb-4 flex items-center text-neutral-300 uppercase tracking-widest">
+          <h3 className={`text-lg font-bold mb-4 flex items-center uppercase tracking-widest ${isDark ? "text-neutral-300" : "text-gray-700"}`}>
             <MapPin className="w-5 h-5 mr-2 text-[#c81474]" />
             Tu Recorrido
           </h3>
 
           <div className="space-y-4">
             {estadisticas.historial.length === 0 ? (
-              <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl p-8 text-center">
-                <p className="text-neutral-500">Aún no has calificado ningún stand.</p>
+              <div className={`border rounded-2xl p-8 text-center ${isDark ? "bg-neutral-900/50 border-neutral-800" : "bg-white border-gray-200 shadow-sm"}`}>
+                <p className={isDark ? "text-neutral-500" : "text-gray-500"}>Aún no has calificado ningún stand.</p>
               </div>
             ) : (
               estadisticas.historial.map((item, index) => (
                 <div 
                   key={item.id} 
-                  className="bg-neutral-900/80 backdrop-blur-sm border border-neutral-800 rounded-2xl p-5 flex items-center justify-between"
+                  className={`border rounded-2xl p-5 flex items-center justify-between ${isDark ? "bg-neutral-900/80 backdrop-blur-sm border-neutral-800" : "bg-white border-gray-200 shadow-sm"}`}
                 >
                   <div className="flex-1">
-                    <h4 className="font-bold text-lg text-white mb-1">{item.standNombre}</h4>
-                    <p className="text-xs text-neutral-500">
+                    <h4 className={`font-bold text-lg mb-1 ${isDark ? "text-white" : "text-gray-900"}`}>{item.standNombre}</h4>
+                    <p className={`text-xs font-medium ${isDark ? "text-neutral-500" : "text-gray-500"}`}>
                       {new Date(item.fecha).toLocaleDateString('es-ES', { 
                         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
                       })}
@@ -164,9 +176,9 @@ export default function ClienteDashboard() {
                   <div className="flex flex-col items-end">
                     <CheckCircle className="w-6 h-6 text-green-500 mb-2" />
                     {item.estrellas && (
-                      <div className="flex items-center space-x-1 bg-yellow-500/10 px-2 py-1 rounded-full">
+                      <div className={`flex items-center space-x-1 px-2 py-1 rounded-full ${isDark ? "bg-yellow-500/10" : "bg-yellow-50 border border-yellow-200"}`}>
                         <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
-                        <span className="text-yellow-500 font-bold text-xs">{item.estrellas}</span>
+                        <span className="text-yellow-600 font-bold text-xs">{item.estrellas}</span>
                       </div>
                     )}
                   </div>
@@ -190,16 +202,16 @@ export default function ClienteDashboard() {
               initial={{ scale: 0.9, opacity: 0 }} 
               animate={{ scale: 1, opacity: 1 }} 
               exit={{ scale: 0.9, opacity: 0 }} 
-              className="bg-neutral-900 border border-[#c81474] rounded-3xl p-6 relative max-w-md w-full shadow-2xl flex flex-col items-center"
+              className={`border rounded-3xl p-6 relative max-w-md w-full shadow-2xl flex flex-col items-center ${isDark ? "bg-neutral-900 border-[#c81474]" : "bg-white border-[#c81474]"}`}
             >
               <button 
                 onClick={() => setEscanerAbierto(false)} 
-                className="absolute top-4 right-4 text-neutral-400 hover:text-white bg-neutral-800 p-2 rounded-full z-50"
+                className={`absolute top-4 right-4 p-2 rounded-full z-50 transition-colors ${isDark ? "text-neutral-400 hover:text-white bg-neutral-800" : "text-gray-500 hover:text-gray-900 bg-gray-100"}`}
               >
                 <X className="w-5 h-5" />
               </button>
               
-              <h2 className="text-xl font-bold text-white mb-6 uppercase tracking-widest text-center mt-2">
+              <h2 className={`text-xl font-bold mb-6 uppercase tracking-widest text-center mt-2 ${isDark ? "text-white" : "text-gray-900"}`}>
                 Escanear Stand
               </h2>
               
@@ -207,7 +219,7 @@ export default function ClienteDashboard() {
                 {/* La librería inyectará el video aquí */}
               </div>
               
-              <p className="text-neutral-400 mt-6 text-center text-sm font-medium">
+              <p className={`mt-6 text-center text-sm font-medium ${isDark ? "text-neutral-400" : "text-gray-600"}`}>
                 Apunta tu cámara al código QR proporcionado por el stand para evaluarlo.
               </p>
             </motion.div>

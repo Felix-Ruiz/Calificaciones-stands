@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { getSession, signOut } from "next-auth/react";
 import QRCodeStyling from "qr-code-styling";
 import { motion, AnimatePresence } from "framer-motion";
-import { Maximize2, Download, X, LogOut, Star, Printer, UserCircle } from "lucide-react";
+import { Maximize2, Download, X, LogOut, Star, Printer, UserCircle, Sun, Moon } from "lucide-react";
 import * as XLSX from "xlsx";
 import { obtenerCalificacionesStand } from "@/actions/ratingActions";
 import { obtenerStands } from "@/actions/standActions";
@@ -15,6 +15,9 @@ export default function StandDashboard() {
   const [calificaciones, setCalificaciones] = useState<any[]>([]);
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  
+  // Estado del tema
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
 
   // Estados para el Modal de Detalles del Cliente
   const [isClienteModalOpen, setIsClienteModalOpen] = useState(false);
@@ -25,6 +28,10 @@ export default function StandDashboard() {
   const qrCodeInstance = useRef<QRCodeStyling | null>(null);
 
   useEffect(() => {
+    // Cargar preferencia de tema
+    const savedTheme = localStorage.getItem("stand-theme") as "dark" | "light";
+    if (savedTheme) setTheme(savedTheme);
+
     const fetchSessionAndData = async () => {
       const session = await getSession();
       if (session?.user) {
@@ -70,6 +77,14 @@ export default function StandDashboard() {
     fetchSessionAndData();
   }, []);
 
+  const toggleTheme = () => {
+    const newTheme = theme === "dark" ? "light" : "dark";
+    setTheme(newTheme);
+    localStorage.setItem("stand-theme", newTheme);
+  };
+
+  const isDark = theme === "dark";
+
   useEffect(() => {
     if (smallQrRef.current && qrCodeInstance.current && !loading) {
       smallQrRef.current.innerHTML = ''; 
@@ -97,7 +112,7 @@ export default function StandDashboard() {
       "Apellidos": c.cliente.apellidos,
       "Institución": c.cliente.institucion,
       "Cargo": c.cliente.cargo,
-      "Teléfono": c.cliente.telefono || "No registrado",
+      "Teléfono": c.cliente.telefono || "No registrado", // <-- Teléfono Incluido
       "Correo": c.cliente.correo,
       "Estrellas": c.estrellas || "N/A",
       "Comentario": c.comentario
@@ -108,17 +123,15 @@ export default function StandDashboard() {
     XLSX.writeFile(workbook, `Calificaciones_${user?.name}.xlsx`);
   };
 
-  // ==========================================
-  // IMPRIMIR QR (SOLUCIÓN: 1 HOJA, SIN FECHAS)
-  // ==========================================
+  // IMPRESIÓN DEL QR (Limpio y centrado)
   const imprimirQR = async () => {
     if (!qrCodeInstance.current) return;
     
-    // Lo escalamos en segundo plano a altísima calidad antes de imprimir
+    // Aumentamos la resolución antes de extraer la imagen
     qrCodeInstance.current.update({ width: 1000, height: 1000 });
     const blob = await qrCodeInstance.current.getRawData("png");
     
-    // Lo regresamos a su tamaño original para el modal
+    // Regresamos al tamaño normal
     qrCodeInstance.current.update({ width: 300, height: 300 });
     
     if (!blob) return;
@@ -133,28 +146,9 @@ export default function StandDashboard() {
           <head>
             <title>Imprimir QR - ${user?.name}</title>
             <style>
-              /* ESTO BORRA LA FECHA, LA HORA Y LA URL DEL NAVEGADOR */
               @page { size: auto; margin: 0mm; } 
-              body { 
-                display: flex; 
-                flex-direction: column; 
-                align-items: center; 
-                justify-content: center; 
-                height: 100vh; 
-                margin: 0; 
-                padding: 20px;
-                box-sizing: border-box;
-                font-family: Arial, sans-serif; 
-                text-align: center; 
-                background: white; 
-              }
-              .qr-container { 
-                padding: 30px; 
-                border: 6px solid #c81474; 
-                border-radius: 30px; 
-                margin: 30px 0; 
-                background: white;
-              }
+              body { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; font-family: Arial, sans-serif; text-align: center; background: white; }
+              .qr-container { padding: 30px; border: 6px solid #c81474; border-radius: 30px; margin: 30px 0; background: white; }
               img { width: 500px; height: 500px; object-fit: contain; }
               h1 { font-size: 50px; margin: 0; color: #000; font-weight: 900; text-transform: uppercase; }
               p { font-size: 26px; color: #333; margin: 0; font-weight: bold; }
@@ -181,29 +175,34 @@ export default function StandDashboard() {
     setIsClienteModalOpen(true);
   };
 
-  if (loading) return <div className="min-h-screen bg-neutral-950 flex justify-center items-center text-[#c81474]">Cargando panel...</div>;
+  if (loading) return <div className={`min-h-screen flex justify-center items-center font-bold ${isDark ? "bg-neutral-950 text-[#c81474]" : "bg-gray-50 text-[#c81474]"}`}>Cargando panel...</div>;
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-white flex flex-col relative overflow-hidden">
-      <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-[#c81474]/10 rounded-full blur-[120px] pointer-events-none" />
+    <div className={`min-h-screen flex flex-col relative overflow-hidden transition-colors duration-300 ${isDark ? "bg-neutral-950 text-white" : "bg-gray-50 text-gray-900"}`}>
+      {isDark && <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-[#c81474]/10 rounded-full blur-[120px] pointer-events-none" />}
       
-      <header className="bg-neutral-900/80 backdrop-blur-md border-b border-[#c81474]/20 px-8 py-4 flex justify-between items-center relative z-10">
+      <header className={`px-8 py-4 flex justify-between items-center relative z-10 border-b ${isDark ? "bg-neutral-900/80 backdrop-blur-md border-[#c81474]/20" : "bg-white/90 backdrop-blur-md border-gray-200 shadow-sm"}`}>
         <div>
-          <p className="text-neutral-400 text-sm tracking-widest uppercase">Bienvenido, Stand</p>
+          <p className={`text-sm tracking-widest uppercase font-bold ${isDark ? "text-neutral-400" : "text-gray-500"}`}>Bienvenido, Stand</p>
           <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-linear-to-r from-[#c81474] to-pink-500">
             {user?.name}
           </h1>
         </div>
-        <button onClick={() => signOut({ callbackUrl: "/login" })} className="flex items-center space-x-2 text-red-400 hover:text-red-300 transition-colors">
-          <LogOut className="w-5 h-5" />
-          <span className="hidden sm:inline">Cerrar Sesión</span>
-        </button>
+        <div className="flex items-center space-x-3 shrink-0">
+          <button onClick={toggleTheme} className={`p-2 rounded-full transition-colors ${isDark ? "bg-neutral-800/50 text-yellow-400 hover:bg-neutral-700" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+            {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </button>
+          <button onClick={() => signOut({ callbackUrl: "/login" })} className={`flex items-center space-x-2 px-3 py-2 rounded-lg font-bold transition-colors ${isDark ? "text-red-400 hover:bg-red-500/10 hover:text-red-300" : "text-red-600 hover:bg-red-50"}`}>
+            <LogOut className="w-5 h-5" />
+            <span className="hidden sm:inline">Cerrar Sesión</span>
+          </button>
+        </div>
       </header>
 
       <main className="flex-1 p-8 max-w-7xl mx-auto w-full relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
           
-          <div className="md:col-span-2 relative bg-neutral-900/60 backdrop-blur-xl border border-[#c81474]/30 rounded-3xl p-8 flex flex-col justify-center items-start shadow-[0_0_40px_rgba(200,20,116,0.15)] overflow-hidden">
+          <div className={`md:col-span-2 relative border rounded-3xl p-8 flex flex-col justify-center items-start shadow-xl overflow-hidden ${isDark ? "bg-neutral-900/60 backdrop-blur-xl border-[#c81474]/30" : "bg-white border-gray-200"}`}>
             <div className="absolute top-[-20%] right-[-10%] opacity-10 pointer-events-none rotate-12">
               <Star className="w-64 h-64 text-[#c81474] fill-[#c81474]" />
             </div>
@@ -211,14 +210,14 @@ export default function StandDashboard() {
               <Star className="w-4 h-4 mr-2 fill-[#c81474]" /> Rendimiento Global
             </p>
             <div className="flex items-baseline space-x-4 relative z-10">
-              <h2 className="text-7xl font-black text-transparent bg-clip-text bg-linear-to-br from-white via-pink-100 to-[#c81474] drop-shadow-lg">
+              <h2 className={`text-7xl font-black text-transparent bg-clip-text drop-shadow-lg ${isDark ? "bg-linear-to-br from-white via-pink-100 to-[#c81474]" : "bg-linear-to-br from-gray-900 to-[#c81474]"}`}>
                 {calificaciones.length}
               </h2>
-              <span className="text-neutral-400 text-lg font-medium leading-tight">calificaciones<br/>recibidas</span>
+              <span className={`text-lg font-medium leading-tight ${isDark ? "text-neutral-400" : "text-gray-500"}`}>calificaciones<br/>recibidas</span>
             </div>
           </div>
 
-          <button onClick={() => setQrModalOpen(true)} className="group relative bg-linear-to-br from-[#c81474] to-pink-700 rounded-3xl p-8 flex flex-col justify-center items-center hover:from-[#a61060] hover:to-pink-600 transition-all shadow-[0_0_30px_rgba(200,20,116,0.3)] overflow-hidden">
+          <button onClick={() => setQrModalOpen(true)} className="group relative bg-linear-to-br from-[#c81474] to-pink-700 rounded-3xl p-8 flex flex-col justify-center items-center hover:from-[#a61060] hover:to-pink-600 transition-all shadow-xl overflow-hidden">
             <div className="bg-white p-2 rounded-xl mb-4 relative z-10 overflow-hidden flex justify-center items-center min-w-20 min-h-20" ref={smallQrRef}>
             </div>
             <div className="flex items-center space-x-2 relative z-10">
@@ -228,48 +227,48 @@ export default function StandDashboard() {
           </button>
         </div>
 
-        <div className="bg-neutral-900/50 backdrop-blur-md border border-neutral-800 rounded-2xl overflow-hidden">
-          <div className="p-6 border-b border-neutral-800 flex justify-between items-center bg-neutral-900">
+        <div className={`border rounded-2xl overflow-hidden shadow-sm ${isDark ? "bg-neutral-900/50 backdrop-blur-md border-neutral-800" : "bg-white border-gray-200"}`}>
+          <div className={`p-6 border-b flex justify-between items-center ${isDark ? "border-neutral-800 bg-neutral-900" : "border-gray-200 bg-gray-50"}`}>
             <h3 className="text-xl font-bold">Feedback de Visitantes</h3>
-            <button onClick={exportarAExcel} disabled={calificaciones.length === 0} className="flex items-center space-x-2 bg-neutral-800 hover:bg-neutral-700 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50">
+            <button onClick={exportarAExcel} disabled={calificaciones.length === 0} className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-bold transition-colors disabled:opacity-50 ${isDark ? "bg-neutral-800 hover:bg-neutral-700 text-white" : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-100"}`}>
               <Download className="w-4 h-4" />
-              <span className="text-sm font-medium">Exportar Excel</span>
+              <span className="text-sm">Exportar Excel</span>
             </button>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-neutral-800 bg-neutral-950/50">
-                  <th className="p-4 font-semibold text-neutral-400">Visitante</th>
-                  <th className="p-4 font-semibold text-neutral-400">Institución</th>
-                  <th className="p-4 font-semibold text-neutral-400">Calificación</th>
-                  <th className="p-4 font-semibold text-neutral-400">Comentario</th>
+                <tr className={`border-b ${isDark ? "border-neutral-800 bg-neutral-950/50 text-neutral-400" : "border-gray-200 bg-white text-gray-500"}`}>
+                  <th className="p-4 font-bold">Visitante</th>
+                  <th className="p-4 font-bold">Institución</th>
+                  <th className="p-4 font-bold">Calificación</th>
+                  <th className="p-4 font-bold">Comentario</th>
                 </tr>
               </thead>
               <tbody>
                 {calificaciones.length === 0 ? (
-                  <tr><td colSpan={4} className="p-12 text-center text-neutral-500">Aún no tienes calificaciones. ¡Muestra tu código QR!</td></tr>
+                  <tr><td colSpan={4} className={`p-12 text-center font-medium ${isDark ? "text-neutral-500" : "text-gray-500"}`}>Aún no tienes calificaciones. ¡Muestra tu código QR!</td></tr>
                 ) : (
                   calificaciones.map((c: any) => (
                     <tr 
                       key={c.id} 
                       onClick={() => abrirDetallesCliente(c.cliente)}
-                      className="border-b border-neutral-800/50 hover:bg-neutral-800/80 transition-colors cursor-pointer group"
+                      className={`border-b transition-colors cursor-pointer group ${isDark ? "border-neutral-800/50 hover:bg-neutral-800/80" : "border-gray-100 hover:bg-gray-50"}`}
                     >
                       <td className="p-4">
-                        <p className="font-medium group-hover:text-[#c81474] transition-colors">{c.cliente.nombres} {c.cliente.apellidos}</p>
-                        <p className="text-xs text-neutral-500">{c.cliente.cargo}</p>
+                        <p className="font-bold group-hover:text-[#c81474] transition-colors">{c.cliente.nombres} {c.cliente.apellidos}</p>
+                        <p className={`text-xs font-medium ${isDark ? "text-neutral-500" : "text-gray-500"}`}>{c.cliente.cargo}</p>
                       </td>
-                      <td className="p-4 text-neutral-300">{c.cliente.institucion}</td>
+                      <td className={`p-4 font-medium ${isDark ? "text-neutral-300" : "text-gray-700"}`}>{c.cliente.institucion}</td>
                       <td className="p-4">
                         {c.estrellas ? (
-                          <div className="flex items-center space-x-1">
+                          <div className={`flex items-center space-x-1 px-2 py-1 rounded-full w-fit ${isDark ? "bg-yellow-500/10" : "bg-yellow-50 border border-yellow-200"}`}>
                             <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                            <span className="font-bold">{c.estrellas}</span>
+                            <span className="font-bold text-yellow-600">{c.estrellas}</span>
                           </div>
-                        ) : <span className="text-neutral-500 text-sm">N/A</span>}
+                        ) : <span className={`text-sm font-bold ${isDark ? "text-neutral-500" : "text-gray-400"}`}>N/A</span>}
                       </td>
-                      <td className="p-4 text-neutral-300 max-w-xs truncate" title={c.comentario}>{c.comentario}</td>
+                      <td className={`p-4 max-w-xs truncate ${isDark ? "text-neutral-300" : "text-gray-600"}`} title={c.comentario}>{c.comentario}</td>
                     </tr>
                   ))
                 )}
@@ -282,21 +281,21 @@ export default function StandDashboard() {
       <AnimatePresence>
         {isClienteModalOpen && selectedCliente && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-neutral-900 border border-[#c81474] rounded-3xl p-8 max-w-lg w-full shadow-2xl relative">
-              <button onClick={() => setIsClienteModalOpen(false)} className="absolute top-6 right-6 text-neutral-500 hover:text-white bg-neutral-800 p-2 rounded-full"><X className="w-5 h-5" /></button>
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className={`border rounded-3xl p-8 max-w-lg w-full shadow-2xl relative ${isDark ? "bg-neutral-900 border-[#c81474]" : "bg-white border-[#c81474]"}`}>
+              <button onClick={() => setIsClienteModalOpen(false)} className={`absolute top-6 right-6 p-2 rounded-full transition-colors ${isDark ? "text-neutral-500 hover:text-white bg-neutral-800" : "text-gray-500 hover:text-gray-900 bg-gray-100"}`}><X className="w-5 h-5" /></button>
               
-              <div className="flex items-center mb-6 border-b border-neutral-800 pb-4">
+              <div className={`flex items-center mb-6 border-b pb-4 ${isDark ? "border-neutral-800" : "border-gray-200"}`}>
                 <UserCircle className="w-10 h-10 text-[#c81474] mr-3" />
-                <h2 className="text-2xl font-bold uppercase tracking-widest text-white">Perfil del Visitante</h2>
+                <h2 className={`text-2xl font-bold uppercase tracking-widest ${isDark ? "text-white" : "text-gray-900"}`}>Perfil del Visitante</h2>
               </div>
               
               <div className="space-y-4 text-lg">
-                <div><p className="text-neutral-500 text-sm uppercase font-bold">Nombres</p><p className="font-medium text-white">{selectedCliente.nombres}</p></div>
-                <div><p className="text-neutral-500 text-sm uppercase font-bold">Apellidos</p><p className="font-medium text-white">{selectedCliente.apellidos}</p></div>
-                <div><p className="text-neutral-500 text-sm uppercase font-bold">Institución</p><p className="font-medium text-white">{selectedCliente.institucion || "No registrada"}</p></div>
-                <div><p className="text-neutral-500 text-sm uppercase font-bold">Cargo</p><p className="font-medium text-white">{selectedCliente.cargo || "No registrado"}</p></div>
-                <div><p className="text-neutral-500 text-sm uppercase font-bold">Teléfono</p><p className="font-medium text-white">{selectedCliente.telefono || "No registrado"}</p></div>
-                <div><p className="text-neutral-500 text-sm uppercase font-bold">Correo Electrónico</p><p className="font-medium text-[#c81474] break-all">{selectedCliente.correo || "No registrado"}</p></div>
+                <div><p className={`text-sm uppercase font-bold ${isDark ? "text-neutral-500" : "text-gray-500"}`}>Nombres</p><p className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}>{selectedCliente.nombres}</p></div>
+                <div><p className={`text-sm uppercase font-bold ${isDark ? "text-neutral-500" : "text-gray-500"}`}>Apellidos</p><p className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}>{selectedCliente.apellidos}</p></div>
+                <div><p className={`text-sm uppercase font-bold ${isDark ? "text-neutral-500" : "text-gray-500"}`}>Institución</p><p className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}>{selectedCliente.institucion || "No registrada"}</p></div>
+                <div><p className={`text-sm uppercase font-bold ${isDark ? "text-neutral-500" : "text-gray-500"}`}>Cargo</p><p className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}>{selectedCliente.cargo || "No registrado"}</p></div>
+                <div><p className={`text-sm uppercase font-bold ${isDark ? "text-neutral-500" : "text-gray-500"}`}>Teléfono</p><p className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}>{selectedCliente.telefono || "No registrado"}</p></div>
+                <div><p className={`text-sm uppercase font-bold ${isDark ? "text-neutral-500" : "text-gray-500"}`}>Correo Electrónico</p><p className="font-medium text-[#c81474] break-all">{selectedCliente.correo || "No registrado"}</p></div>
               </div>
             </motion.div>
           </motion.div>
