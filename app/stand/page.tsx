@@ -179,17 +179,23 @@ export default function StandDashboard() {
       {isDark && <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-[#c81474]/10 rounded-full blur-[120px] pointer-events-none" />}
       
       <header className={`px-8 py-4 flex justify-between items-center relative z-10 border-b ${isDark ? "bg-neutral-900/80 backdrop-blur-md border-[#c81474]/20" : "bg-white/90 backdrop-blur-md border-gray-200 shadow-sm"}`}>
-        <div>
-          <p className={`text-sm tracking-widest uppercase font-bold ${isDark ? "text-neutral-400" : "text-gray-500"}`}>{t("Bienvenido, Stand", "Welcome, Stand")}</p>
-          <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-linear-to-r from-[#c81474] to-pink-500 truncate">
-            {user?.name}
-          </h1>
+        
+        {/* LOGO + BIENVENIDA */}
+        <div className="flex items-center space-x-4">
+          <img src="/logo.png" alt="Logo" className="w-12 h-12 object-contain" />
+          <div>
+            <p className={`text-sm tracking-widest uppercase font-bold ${isDark ? "text-neutral-400" : "text-gray-500"}`}>{t("Bienvenido, Stand", "Welcome, Stand")}</p>
+            <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-linear-to-r from-[#c81474] to-pink-500 truncate">
+              {user?.name}
+            </h1>
+          </div>
         </div>
+
         <div className="flex items-center space-x-3 shrink-0">
           <button onClick={toggleLanguage} className={`p-2 rounded-full transition-colors ${isDark ? "bg-neutral-800/50 text-blue-400 hover:bg-neutral-700" : "bg-gray-100 text-blue-600 hover:bg-gray-200"}`} title={t("Cambiar Idioma", "Change Language")}>
             <Globe className="w-5 h-5" />
           </button>
-          <button onClick={toggleTheme} className={`p-2 rounded-full transition-colors ${isDark ? "bg-neutral-800/50 text-yellow-400 hover:bg-neutral-700" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+          <button onClick={toggleTheme} className={`p-2 rounded-full transition-colors ${isDark ? "bg-neutral-800/50 text-yellow-400 hover:bg-neutral-700" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`} title={t("Cambiar Tema", "Toggle Theme")}>
             {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
           <button onClick={() => signOut({ callbackUrl: "/login" })} className={`flex items-center space-x-2 px-3 py-2 rounded-lg font-bold transition-colors ${isDark ? "text-red-400 hover:bg-red-500/10 hover:text-red-300" : "text-red-600 hover:bg-red-50"}`}>

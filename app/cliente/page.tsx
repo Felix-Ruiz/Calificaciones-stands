@@ -16,17 +16,15 @@ export default function ClienteDashboard() {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [escanerAbierto, setEscanerAbierto] = useState(false);
   
-  // ESTADO DE IDIOMA: Por defecto en Inglés
+  // ESTADO DE IDIOMA
   const [language, setLanguage] = useState<"en" | "es">("en");
   
   const router = useRouter();
 
   useEffect(() => {
-    // 1. Cargar Preferencia de Tema
     const savedTheme = localStorage.getItem("cliente-theme") as "dark" | "light";
     if (savedTheme) setTheme(savedTheme);
 
-    // 2. Cargar Preferencia de Idioma (Se lee de app-lang si viene del Login)
     const savedLang = localStorage.getItem("app-lang") as "en" | "es";
     if (savedLang) {
       setLanguage(savedLang);
@@ -60,11 +58,9 @@ export default function ClienteDashboard() {
   };
 
   const isDark = theme === "dark";
-  
-  // Función de traducción
   const t = (es: string, en: string) => language === "en" ? en : es;
 
-  // Lógica del Escáner Nativo Integrado (Inmediato)
+  // Lógica del Escáner
   useEffect(() => {
     let html5QrCode: any = null;
 
@@ -86,9 +82,7 @@ export default function ClienteDashboard() {
               }
             });
           },
-          (err: any) => {
-            // Se ignoran los errores constantes mientras busca el QR
-          }
+          (err: any) => {}
         ).catch((err: any) => {
           console.error("No se pudo iniciar la cámara:", err);
         });
@@ -109,7 +103,6 @@ export default function ClienteDashboard() {
   return (
     <div className={`min-h-screen flex flex-col relative overflow-hidden transition-colors duration-300 ${isDark ? "bg-neutral-950 text-white" : "bg-gray-50 text-gray-900"}`}>
       
-      {/* Luces de fondo (Solo en modo oscuro) */}
       {isDark && (
         <>
           <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-[#c81474]/10 rounded-full blur-[120px] pointer-events-none" />
@@ -119,12 +112,18 @@ export default function ClienteDashboard() {
 
       {/* Navbar Móvil */}
       <header className={`px-6 py-4 flex justify-between items-center relative z-10 top-0 border-b ${isDark ? "bg-neutral-900/80 backdrop-blur-md border-[#c81474]/20" : "bg-white/90 backdrop-blur-md border-gray-200 shadow-sm"}`}>
-        <div className="flex-1 mr-4">
-          <p className={`text-xs tracking-widest uppercase font-bold ${isDark ? "text-neutral-400" : "text-gray-500"}`}>{t("Visitante VIP", "VIP Visitor")}</p>
-          <h1 className="text-xl font-bold text-transparent bg-clip-text bg-linear-to-r from-[#c81474] to-pink-500 wrap-break-word leading-tight">
-            {user?.name}
-          </h1>
+        
+        {/* LOGO + BIENVENIDA */}
+        <div className="flex-1 mr-4 flex items-center space-x-4">
+          <img src="/logo.png" alt="Logo" className="w-12 h-12 object-contain" />
+          <div>
+            <p className={`text-xs tracking-widest uppercase font-bold ${isDark ? "text-neutral-400" : "text-gray-500"}`}>{t("Bienvenido", "Welcome")}</p>
+            <h1 className="text-xl font-bold text-transparent bg-clip-text bg-linear-to-r from-[#c81474] to-pink-500 wrap-break-word leading-tight">
+              {user?.name}
+            </h1>
+          </div>
         </div>
+
         <div className="flex items-center space-x-2 shrink-0">
           <button onClick={toggleLanguage} className={`p-2 rounded-full transition-colors ${isDark ? "bg-neutral-800/50 text-blue-400 hover:bg-neutral-700" : "bg-gray-100 text-blue-600 hover:bg-gray-200"}`} title={t("Cambiar Idioma", "Change Language")}>
             <Globe className="w-5 h-5" />
@@ -144,7 +143,6 @@ export default function ClienteDashboard() {
 
       <main className="flex-1 p-6 max-w-2xl mx-auto w-full relative z-10">
         
-        {/* BOTÓN DE ESCÁNER DE CÁMARA */}
         <motion.button
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -155,7 +153,6 @@ export default function ClienteDashboard() {
           <span>{t("Escanear Stand", "Scan Stand")}</span>
         </motion.button>
 
-        {/* Tarjeta de Progreso */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -169,7 +166,6 @@ export default function ClienteDashboard() {
           </p>
         </motion.div>
 
-        {/* Historial de Calificaciones */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -216,7 +212,6 @@ export default function ClienteDashboard() {
         </motion.div>
       </main>
 
-      {/* MODAL DEL ESCÁNER DE CÁMARA */}
       <AnimatePresence>
         {escanerAbierto && (
           <motion.div 
@@ -243,7 +238,6 @@ export default function ClienteDashboard() {
               </h2>
               
               <div id="qr-reader" className="w-full max-w-sm rounded-2xl overflow-hidden border-4 border-[#c81474] min-h-75 flex items-center justify-center bg-black">
-                {/* La librería inyectará el video aquí */}
               </div>
               
               <p className={`mt-6 text-center text-sm font-medium ${isDark ? "text-neutral-400" : "text-gray-600"}`}>
