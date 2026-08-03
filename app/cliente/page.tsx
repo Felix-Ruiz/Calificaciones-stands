@@ -224,6 +224,13 @@ export default function ClienteDashboard() {
 
         <div className="flex items-center space-x-2 shrink-0">
           <button 
+            onClick={() => setShowPwaPrompt(true)} 
+            className={`p-2 rounded-full transition-colors ${isDark ? "bg-neutral-800/50 text-[#c81474] hover:bg-neutral-700" : "bg-gray-100 text-[#c81474] hover:bg-gray-200"}`} 
+            title={t("Instalar App", "Install App")}
+          >
+            <Download className="w-5 h-5" />
+          </button>
+          <button 
             onClick={toggleLanguage} 
             className={`p-2 rounded-full transition-colors ${isDark ? "bg-neutral-800/50 text-[#c81474] hover:bg-neutral-700" : "bg-gray-100 text-[#c81474] hover:bg-gray-200"}`} 
             title={t("Cambiar Idioma", "Change Language")}
@@ -265,7 +272,6 @@ export default function ClienteDashboard() {
           animate={{ opacity: 1, y: 0 }}
           className={`border rounded-3xl p-8 text-center shadow-[0_0_30px_rgba(200,20,116,0.15)] mb-8 relative overflow-hidden ${isDark ? "bg-linear-to-br from-neutral-900 to-neutral-950 border-[#c81474]/30" : "bg-white border-gray-200"}`}
         >
-          {/* Fondo animado cuando se completa (Mantiene los colores de la marca) */}
           {completado && (
             <div className="absolute inset-0 bg-linear-to-br from-[#c81474]/10 to-purple-600/10 pointer-events-none" />
           )}
@@ -389,7 +395,7 @@ export default function ClienteDashboard() {
         )}
       </AnimatePresence>
 
-      {/* SÚPER MODAL: ¡ERES EL GANADOR! (Corregidos Colores y Centrado) */}
+      {/* SÚPER MODAL: ¡ERES EL GANADOR! */}
       <AnimatePresence>
         {soyGanador && (
           <motion.div 

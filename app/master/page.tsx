@@ -6,13 +6,11 @@ import {
   Users, Store, Gift, Settings, LogOut, Upload, Star, Trophy, 
   History, Play, Plus, X, Eye, MessageSquare, Edit, Trash2, 
   Download, ExternalLink, Printer, Copy, ChevronRight, ChevronLeft, 
-  Maximize, AlertTriangle, Search, Sun, Moon, Globe, PieChart as PieChartIcon, 
-  BarChart3 
+  Maximize, AlertTriangle, Search, Sun, Moon, Globe 
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import * as XLSX from "xlsx";
 import QRCodeStyling from "qr-code-styling";
-import { PieChart, Pie, Legend, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { cargarStandsMasivos, obtenerStands, crearStandManual, actualizarStand, eliminarStand } from "@/actions/standActions";
 import { cargarClientesMasivos, obtenerClientes, actualizarCliente, eliminarCliente, eliminarTodosClientes } from "@/actions/clienteActions";
 import { obtenerAjustes, guardarAjustes, obtenerParticipantesSorteo, registrarGanador, obtenerHistorialGanadores, eliminarGanadorHistorial } from "@/actions/lotteryActions";
@@ -23,7 +21,7 @@ export default function MasterDashboard() {
   const [loading, setLoading] = useState(false);
   const [mensaje, setMensaje] = useState("");
   
-  // ESTADO DEL MENÚ MÓVIL (En Desktop usa CSS Hover)
+  // ESTADO DEL MENÚ MÓVIL
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
   // ESTADOS DE TEMA E IDIOMA
@@ -454,7 +452,6 @@ export default function MasterDashboard() {
     XLSX.writeFile(wb, "Reporte_Visitantes.xlsx");
   };
 
-  // DATOS Y FILTROS
   const filteredStands = standsList.filter(s => 
     s.nombreStand?.toLowerCase().includes(searchStand.toLowerCase()) || 
     s.username?.toLowerCase().includes(searchStand.toLowerCase())
@@ -470,24 +467,6 @@ export default function MasterDashboard() {
   );
   const paginatedClientes = filteredClientes.slice((pageClientes - 1) * limitClientes, pageClientes * limitClientes);
   const totalPagesClientes = Math.ceil(filteredClientes.length / limitClientes);
-
-  // GRÁFICAS DE MASTER (Instituciones y Visitantes Top)
-  const institucionData = clientesList.reduce((acc: any, c: any) => { 
-    const inst = c.institucion || t("Otra", "Other"); 
-    acc[inst] = (acc[inst] || 0) + 1; 
-    return acc; 
-  }, {});
-  
-  const pieData = Object.keys(institucionData)
-    .map(k => ({ name: k, value: institucionData[k] }))
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 5);
-    
-  const COLORS = ['#c81474', '#9d105b', '#7a0c47', '#e83b96', '#f472b6'];
-
-  const topVisitantes = [...clientesList]
-    .sort((a, b) => (b._count?.calificacionesDadas || 0) - (a._count?.calificacionesDadas || 0))
-    .slice(0, 3);
 
   const tabs = [
     { id: "stands", label: t("Stands", "Stands"), icon: Store },
@@ -563,7 +542,7 @@ export default function MasterDashboard() {
       <main className="flex-1 h-full overflow-y-auto relative flex flex-col p-6 md:p-10">
         
         {/* MARCA DE AGUA */}
-        <div className={`absolute inset-0 z-0 flex justify-center items-center pointer-events-none ${isDark ? "opacity-10" : "opacity-[0.05]"}`}>
+        <div className={`absolute inset-0 z-0 flex justify-center items-center pointer-events-none ${isDark ? "opacity-[0.03]" : "opacity-5"}`}>
           <img 
             src="/logo.png" 
             alt="WEEF Background" 
@@ -776,73 +755,11 @@ export default function MasterDashboard() {
                   <button 
                     onClick={handleEliminarTodosClientes} 
                     disabled={loading || clientesList.length === 0} 
-                    className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-bold transition-all border disabled:opacity-50 ${isDark ? "bg-red-600/20 text-red-500 border-red-500/50 hover:bg-red-600/30" : "bg-red-50 text-red-600 border-red-200 hover:bg-red-100"}`}
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-bold transition-all border disabled:opacity-50 ${isDark ? "bg-[#c81474]/20 text-[#c81474] border-[#c81474]/50 hover:bg-[#c81474]/30" : "bg-pink-50 text-[#c81474] border-pink-200 hover:bg-pink-100"}`}
                   >
                     <Trash2 className="w-5 h-5" />
                     <span>{t("Eliminar Todos", "Delete All")}</span>
                   </button>
-                </div>
-              </div>
-
-              {/* GRÁFICAS DEL DASHBOARD DE VISITANTES */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div className={`p-6 border rounded-3xl shadow-xl flex flex-col ${isDark ? "bg-neutral-900/60 backdrop-blur-xl border-neutral-800" : "bg-white border-gray-200"}`}>
-                  <h3 className={`text-sm font-bold uppercase tracking-widest mb-4 flex items-center ${isDark ? "text-neutral-400" : "text-gray-500"}`}>
-                    <PieChartIcon className="w-4 h-4 mr-2" /> 
-                    {t("Instituciones Top", "Top Institutions")}
-                  </h3>
-                  <div className="flex-1 w-full min-h-50">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie 
-                          data={pieData} 
-                          cx="50%" 
-                          cy="50%" 
-                          innerRadius={50} 
-                          outerRadius={80} 
-                          paddingAngle={2} 
-                          dataKey="value"
-                        >
-                          {pieData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip contentStyle={{ backgroundColor: isDark ? '#171717' : '#ffffff', border: 'none', borderRadius: '12px', color: '#c81474', fontWeight: 'bold' }} />
-                        <Legend verticalAlign="bottom" height={36} iconType="circle" />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-
-                <div className={`p-6 border rounded-3xl shadow-xl flex flex-col ${isDark ? "bg-neutral-900/60 backdrop-blur-xl border-neutral-800" : "bg-white border-gray-200"}`}>
-                  <h3 className={`text-sm font-bold uppercase tracking-widest mb-4 flex items-center ${isDark ? "text-neutral-400" : "text-gray-500"}`}>
-                    <BarChart3 className="w-4 h-4 mr-2" /> 
-                    {t("Top Visitantes Activos", "Top Active Visitors")}
-                  </h3>
-                  <div className="space-y-4 flex-1 flex flex-col justify-center">
-                    {topVisitantes.length === 0 ? (
-                      <p className="text-center text-sm text-neutral-500">{t("Sin datos aún.", "No data yet.")}</p>
-                    ) : (
-                      topVisitantes.map((v, i) => (
-                        <div key={i} className={`flex justify-between items-center p-3 rounded-xl border ${isDark ? "bg-neutral-950/50 border-neutral-800" : "bg-gray-50 border-gray-100"}`}>
-                          <div className="flex items-center space-x-3">
-                            <div className="bg-[#c81474] text-white w-8 h-8 rounded-full flex items-center justify-center font-black">
-                              {i + 1}
-                            </div>
-                            <div>
-                              <p className={`font-bold ${isDark ? "text-white" : "text-gray-900"}`}>
-                                {v.nombres.split(" ")[0]} {v.apellidos.split(" ")[0]}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center space-x-1 font-bold text-[#c81474]">
-                            <Star className="w-4 h-4 fill-[#c81474]" />
-                            <span>{v._count?.calificacionesDadas || 0}</span>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
                 </div>
               </div>
 
@@ -886,7 +803,7 @@ export default function MasterDashboard() {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className={`border-b ${isDark ? "bg-black/50 border-neutral-800 text-neutral-300" : "bg-gray-50 border-gray-200 text-gray-600"}`}>
-                      <th className="p-4 font-bold">{t("Nombre", "Name")}</th>
+                      <th className="p-4 font-bold">{t("Nombre Completo", "Full Name")}</th>
                       <th className="p-4 font-bold">{t("Documento", "Document")}</th>
                       <th className="p-4 font-bold">{t("Institución", "Institution")}</th>
                       <th className="p-4 font-bold">{t("Calif.", "Ratings")}</th>

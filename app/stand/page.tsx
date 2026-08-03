@@ -19,6 +19,9 @@ export default function StandDashboard() {
   
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [language, setLanguage] = useState<"en" | "es">("en");
+  
+  // ESTADO PWA
+  const [showPwaPrompt, setShowPwaPrompt] = useState(false);
 
   const [isClienteModalOpen, setIsClienteModalOpen] = useState(false);
   const [selectedCliente, setSelectedCliente] = useState<any>(null);
@@ -86,6 +89,11 @@ export default function StandDashboard() {
     const newLang = language === "en" ? "es" : "en";
     setLanguage(newLang);
     localStorage.setItem("app-lang", newLang);
+  };
+
+  const cerrarPwaPrompt = () => {
+    setShowPwaPrompt(false);
+    localStorage.setItem('pwa-prompt-seen', "true");
   };
 
   const isDark = theme === "dark";
@@ -187,7 +195,7 @@ export default function StandDashboard() {
     setIsClienteModalOpen(true);
   };
 
-  // DATOS PARA LA GRÁFICA DE RECHARTS (Corregido a "★ 5", "★ 4", etc para que no se corte)
+  // DATOS PARA LA GRÁFICA DE RECHARTS
   const chartData = [5, 4, 3, 2, 1].map(star => ({
     name: `★ ${star}`,
     valoraciones: calificaciones.filter(c => c.estrellas === star).length
@@ -205,11 +213,6 @@ export default function StandDashboard() {
   return (
     <div className={`min-h-screen flex flex-col relative overflow-hidden transition-colors duration-300 ${isDark ? "bg-neutral-950 text-white" : "bg-gray-50 text-gray-900"}`}>
       
-      {/* Luces decorativas */}
-      {isDark && (
-        <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-[#c81474]/10 rounded-full blur-[120px] pointer-events-none" />
-      )}
-      
       {/* MARCA DE AGUA DEL LOGO EN EL FONDO */}
       <div className={`absolute inset-0 z-0 flex justify-center items-center pointer-events-none ${isDark ? "opacity-10" : "opacity-[0.03]"}`}>
         <img src="/logo.png" alt="WEEF Background" className="w-[80%] h-[80%] object-contain" />
@@ -224,13 +227,20 @@ export default function StandDashboard() {
             <p className={`text-sm tracking-widest uppercase font-bold ${isDark ? "text-neutral-400" : "text-gray-500"}`}>
               {t("Bienvenido, Stand", "Welcome, Stand")}
             </p>
-            <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-linear-to-r from-[#c81474] to-pink-500 truncate">
+            <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-linear-to-r from-[#c81474] to-purple-500 truncate">
               {user?.name}
             </h1>
           </div>
         </div>
 
         <div className="flex items-center space-x-3 shrink-0">
+          <button 
+            onClick={() => setShowPwaPrompt(true)} 
+            className={`p-2 rounded-full transition-colors ${isDark ? "bg-neutral-800/50 text-[#c81474] hover:bg-neutral-700" : "bg-gray-100 text-[#c81474] hover:bg-gray-200"}`} 
+            title={t("Instalar App", "Install App")}
+          >
+            <Download className="w-5 h-5" />
+          </button>
           <button 
             onClick={toggleLanguage} 
             className={`p-2 rounded-full transition-colors ${isDark ? "bg-neutral-800/50 text-[#c81474] hover:bg-neutral-700" : "bg-gray-100 text-[#c81474] hover:bg-gray-200"}`} 
@@ -257,29 +267,27 @@ export default function StandDashboard() {
 
       <main className="flex-1 p-8 max-w-7xl mx-auto w-full relative z-10">
         
-        {/* WIDGETS + GRÁFICA EN GRID DE 3 COLUMNAS */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+        {/* WIDGETS + GRÁFICA EN GRID DE 3 COLUMNAS (En una sola línea) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
           
-          <div className={`md:col-span-2 relative border rounded-3xl p-8 flex flex-col justify-center items-start shadow-xl overflow-hidden ${isDark ? "bg-neutral-900/60 backdrop-blur-xl border-[#c81474]/30" : "bg-white border-gray-200"}`}>
+          <div className={`relative border rounded-3xl p-8 flex flex-col justify-center items-start shadow-xl overflow-hidden ${isDark ? "bg-neutral-900/60 backdrop-blur-xl border-[#c81474]/30" : "bg-white border-gray-200"}`}>
             <div className="absolute top-[-20%] right-[-10%] opacity-10 pointer-events-none rotate-12">
               <Star className="w-64 h-64 text-[#c81474] fill-[#c81474]" />
             </div>
             <p className="text-[#c81474] font-bold uppercase tracking-widest text-sm mb-2 flex items-center">
               <Star className="w-4 h-4 mr-2 fill-[#c81474]" /> 
-              {/* Cambiado el texto a Calificaciones Recibidas */}
               {t("Calificaciones Recibidas", "Received Ratings")}
             </p>
-            <div className="flex items-baseline space-x-4 relative z-10">
+            <div className="flex items-baseline space-x-4 relative z-10 mt-2">
               <h2 className={`text-7xl font-black text-transparent bg-clip-text drop-shadow-lg ${isDark ? "bg-linear-to-br from-white via-pink-100 to-[#c81474]" : "bg-linear-to-br from-gray-900 to-[#c81474]"}`}>
                 {calificaciones.length}
               </h2>
-              <span className={`text-lg font-medium leading-tight ${isDark ? "text-neutral-400" : "text-gray-500"}`} dangerouslySetInnerHTML={{ __html: t("calificaciones<br/>totales", "total<br/>ratings") }}></span>
             </div>
           </div>
 
           <button 
             onClick={() => setQrModalOpen(true)} 
-            className="group relative bg-linear-to-br from-[#c81474] to-pink-700 rounded-3xl p-8 flex flex-col justify-center items-center hover:from-[#a61060] hover:to-pink-600 transition-all shadow-xl overflow-hidden"
+            className="group relative bg-linear-to-br from-[#c81474] to-purple-700 rounded-3xl p-8 flex flex-col justify-center items-center hover:from-[#a61060] hover:to-purple-600 transition-all shadow-xl overflow-hidden"
           >
             <div className="bg-white p-2 rounded-xl mb-4 relative z-10 overflow-hidden flex justify-center items-center min-w-20 min-h-20" ref={smallQrRef}>
             </div>
@@ -290,31 +298,32 @@ export default function StandDashboard() {
               </span>
             </div>
           </button>
-        </div>
 
-        {/* GRÁFICO RECHARTS DE ESTRELLAS */}
-        <div className={`relative border rounded-3xl p-6 shadow-xl flex flex-col mb-10 ${isDark ? "bg-neutral-900/60 backdrop-blur-xl border-neutral-800" : "bg-white border-gray-200"}`}>
-          <h3 className={`text-sm font-bold uppercase tracking-widest mb-4 flex items-center ${isDark ? "text-neutral-400" : "text-gray-500"}`}>
-            <BarChart3 className="w-4 h-4 mr-2" /> 
-            {t("Distribución de Estrellas", "Star Distribution")}
-          </h3>
-          <div className="flex-1 w-full min-h-37.5">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                <XAxis type="number" hide domain={[0, maxValoraciones === 0 ? 1 : maxValoraciones]} />
-                <YAxis dataKey="name" type="category" width={40} axisLine={false} tickLine={false} tick={{ fill: isDark ? '#9ca3af' : '#6b7280', fontSize: 12, fontWeight: 'bold' }} />
-                <Tooltip 
-                  cursor={{ fill: 'transparent' }} 
-                  contentStyle={{ backgroundColor: isDark ? '#171717' : '#ffffff', border: 'none', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }} 
-                  itemStyle={{ color: '#c81474', fontWeight: 'bold' }} 
-                />
-                <Bar dataKey="valoraciones" radius={[0, 8, 8, 0]} barSize={12}>
-                  {chartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={'#c81474'} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+          {/* GRÁFICO RECHARTS DE ESTRELLAS */}
+          <div className={`relative border rounded-3xl p-6 shadow-xl flex flex-col ${isDark ? "bg-neutral-900/60 backdrop-blur-xl border-neutral-800" : "bg-white border-gray-200"}`}>
+            <h3 className={`text-sm font-bold uppercase tracking-widest mb-4 flex items-center ${isDark ? "text-neutral-400" : "text-gray-500"}`}>
+              <BarChart3 className="w-4 h-4 mr-2" /> 
+              {t("Estadísticas de Calificaciones", "Rating Statistics")}
+            </h3>
+            {/* Altura ajustada para que no quede vacía */}
+            <div className="w-full h-40">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                  <XAxis type="number" hide domain={[0, maxValoraciones === 0 ? 1 : maxValoraciones]} />
+                  <YAxis dataKey="name" type="category" width={40} axisLine={false} tickLine={false} tick={{ fill: isDark ? '#9ca3af' : '#6b7280', fontSize: 12, fontWeight: 'bold' }} />
+                  <Tooltip 
+                    cursor={{ fill: 'transparent' }} 
+                    contentStyle={{ backgroundColor: isDark ? '#171717' : '#ffffff', border: 'none', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }} 
+                    itemStyle={{ color: '#c81474', fontWeight: 'bold' }} 
+                  />
+                  <Bar dataKey="valoraciones" radius={[0, 8, 8, 0]} barSize={12}>
+                    {chartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={'#c81474'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
 
@@ -488,6 +497,51 @@ export default function StandDashboard() {
                 {t("Stand:", "Stand:")} <span className="text-[#c81474] font-bold">{user?.name}</span>
               </p>
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* POPUP DE PWA (INSTALAR APP EN MÓVIL) */}
+      <AnimatePresence>
+        {showPwaPrompt && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            exit={{ opacity: 0, y: 50 }} 
+            className="fixed bottom-0 left-0 right-0 z-50 p-4 pb-8 md:max-w-md mx-auto"
+          >
+            <div className={`border rounded-3xl p-6 shadow-2xl relative ${isDark ? "bg-neutral-900 border-[#c81474]" : "bg-white border-[#c81474]"}`}>
+              <button 
+                onClick={cerrarPwaPrompt} 
+                className={`absolute top-4 right-4 p-2 rounded-full transition-colors ${isDark ? "text-neutral-400 hover:text-white bg-neutral-800" : "text-gray-500 hover:text-gray-900 bg-gray-100"}`}
+              >
+                <X className="w-5 h-5" />
+              </button>
+              
+              <div className="flex items-center space-x-4 mb-4">
+                <img src="/icon.png" alt="App Icon" className="w-16 h-16 rounded-2xl shadow-md" />
+                <div>
+                  <h3 className={`font-black text-lg ${isDark ? "text-white" : "text-gray-900"}`}>
+                    {t("Instala WEEF 2026", "Install WEEF 2026")}
+                  </h3>
+                  <p className={`text-sm font-medium ${isDark ? "text-[#c81474]" : "text-[#c81474]"}`}>
+                    {t("Para una experiencia fluida", "For a seamless experience")}
+                  </p>
+                </div>
+              </div>
+              
+              <div className={`text-sm mb-6 space-y-2 font-medium ${isDark ? "text-neutral-300" : "text-gray-700"}`}>
+                <p>1. {t("Toca el icono de Compartir", "Tap the Share icon")} <Download className="inline w-4 h-4 mx-1"/> {t("en el menú inferior.", "in the bottom menu.")}</p>
+                <p>2. {t("Selecciona 'Agregar a Inicio'.", "Select 'Add to Home Screen'.")}</p>
+              </div>
+              
+              <button 
+                onClick={cerrarPwaPrompt} 
+                className="w-full font-bold uppercase tracking-widest py-3 rounded-xl border border-[#c81474] text-[#c81474] hover:bg-[#c81474]/10 transition-colors"
+              >
+                {t("Continuar en web", "Continue on web")}
+              </button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
