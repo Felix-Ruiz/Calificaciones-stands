@@ -133,25 +133,18 @@ function LoginContent() {
         animate={{ opacity: 1, y: 0 }}
         className={`backdrop-blur-xl border rounded-3xl p-10 max-w-md w-full shadow-2xl relative z-10 overflow-hidden ${isDark ? "bg-neutral-900/80 border-neutral-800" : "bg-white/90 border-gray-200"}`}
       >
-        {/* LOGO DE FONDO COMO MARCA DE AGUA (Más visible) */}
-        <div className={`absolute inset-0 z-0 flex justify-center items-center pointer-events-none ${isDark ? "opacity-25" : "opacity-20"}`}>
+        {/* LOGO DE FONDO COMO MARCA DE AGUA (Corregido a object-cover y opacidad súper baja) */}
+        <div className={`absolute inset-0 z-0 pointer-events-none ${isDark ? "opacity-[0.03]" : "opacity-10"}`}>
           <img 
             src="/logo.png" 
             alt="WEEF Background" 
-            className="w-[120%] h-[120%] object-contain"
+            className="w-full h-full object-cover"
           />
         </div>
 
         {/* CONTENIDO PRINCIPAL (POR ENCIMA DEL LOGO) */}
         <div className="relative z-10">
           <div className="text-center mb-8">
-            <div className="flex justify-center mb-6">
-              <img 
-                src="/logo.png" 
-                alt="WEEF 2026 Logo" 
-                className="w-28 h-28 object-contain drop-shadow-xl"
-              />
-            </div>
             <h1 className="text-3xl font-black text-transparent bg-clip-text bg-linear-to-r from-[#c81474] to-purple-500 tracking-widest uppercase mb-2">
               {t("Acceso", "Login")}
             </h1>
