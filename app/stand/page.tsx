@@ -8,6 +8,7 @@ import { Maximize2, Download, X, LogOut, Star, Printer, UserCircle, Sun, Moon, G
 import * as XLSX from "xlsx";
 import { obtenerCalificacionesStand } from "@/actions/ratingActions";
 import { obtenerStands } from "@/actions/standActions";
+import { obtenerAjustes } from "@/actions/lotteryActions";
 
 export default function StandDashboard() {
   const [user, setUser] = useState<any>(null);
@@ -22,6 +23,9 @@ export default function StandDashboard() {
   // ESTADO PWA
   const [showPwaPrompt, setShowPwaPrompt] = useState(false);
   const [isAppInstalled, setIsAppInstalled] = useState(true);
+
+  // CONFIGURACIÓN GLOBAL (Ver si activan estrellas)
+  const [activarEstrellas, setActivarEstrellas] = useState(true);
 
   const [isClienteModalOpen, setIsClienteModalOpen] = useState(false);
   const [selectedCliente, setSelectedCliente] = useState<any>(null);
@@ -42,7 +46,6 @@ export default function StandDashboard() {
       localStorage.setItem("app-lang", "en");
     }
 
-    // Comprobación de instalación PWA
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
     setIsAppInstalled(isStandalone);
 
@@ -58,6 +61,13 @@ export default function StandDashboard() {
         setLogo(standLogo);
 
         setCalificaciones(await obtenerCalificacionesStand(session.user.id));
+
+        try {
+          const config = await obtenerAjustes();
+          setActivarEstrellas(config.activarEstrellas);
+        } catch (error) {
+          console.error("Error al obtener ajustes", error);
+        }
 
         qrCodeInstance.current = new QRCodeStyling({
           width: 300,
@@ -210,8 +220,9 @@ export default function StandDashboard() {
   return (
     <div className={`min-h-screen flex flex-col relative overflow-hidden transition-colors duration-300 ${isDark ? "bg-neutral-950 text-white" : "bg-gray-50 text-gray-900"}`}>
       
+      {/* Optimizado blur para no colapsar móviles */}
       {isDark && (
-        <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-[#c81474]/10 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-[-10%] left-[-10%] w-72 h-72 bg-[#c81474]/10 rounded-full blur-3xl pointer-events-none" />
       )}
       
       <div className={`absolute inset-0 z-0 flex justify-center items-center pointer-events-none ${isDark ? "opacity-10" : "opacity-[0.03]"}`}>
@@ -278,51 +289,50 @@ export default function StandDashboard() {
               <Star className="w-64 h-64 text-[#c81474] fill-[#c81474]" />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10 w-full h-full items-center">
+            <div className={activarEstrellas ? "grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10 w-full h-full items-center" : "flex flex-col relative z-10 w-full h-full items-center justify-center text-center"}>
               
-              {/* Parte Izquierda: Número Gigante */}
-              <div className="flex flex-col justify-center">
-                <p className="text-[#c81474] font-bold uppercase tracking-widest text-sm mb-2 flex items-center">
+              {/* Parte Izquierda: Número Gigante Centrado */}
+              <div className={`flex flex-col ${activarEstrellas ? "items-start" : "items-center"} justify-center h-full`}>
+                <p className="text-[#c81474] font-bold uppercase tracking-widest text-sm mb-4 flex items-center">
                   <Star className="w-4 h-4 mr-2 fill-[#c81474]" /> 
-                  {t("Rendimiento Global", "Global Performance")}
+                  {t("Calificaciones Recibidas", "Received Ratings")}
                 </p>
-                <div className="flex items-baseline space-x-4">
-                  <h2 className={`text-7xl font-black text-transparent bg-clip-text drop-shadow-lg ${isDark ? "bg-linear-to-br from-white via-pink-100 to-[#c81474]" : "bg-linear-to-br from-gray-900 to-[#c81474]"}`}>
-                    {calificaciones.length}
-                  </h2>
-                  <span className={`text-lg font-medium leading-tight ${isDark ? "text-neutral-400" : "text-gray-500"}`} dangerouslySetInnerHTML={{ __html: t("calificaciones<br/>recibidas", "received<br/>ratings") }}></span>
-                </div>
+                <h2 className={`text-8xl md:text-9xl font-black text-transparent bg-clip-text drop-shadow-lg ${isDark ? "bg-linear-to-br from-white via-pink-100 to-[#c81474]" : "bg-linear-to-br from-gray-900 to-[#c81474]"}`}>
+                  {calificaciones.length}
+                </h2>
               </div>
 
-              {/* Parte Derecha: Barras de Estrellas HTML Nativas */}
-              <div className={`flex flex-col justify-center space-y-3 w-full border-l-0 md:border-l pl-0 md:pl-8 mt-6 md:mt-0 ${isDark ? "border-neutral-800" : "border-gray-200"}`}>
-                <h3 className={`text-sm font-bold uppercase tracking-widest mb-2 ${isDark ? "text-neutral-400" : "text-gray-500"}`}>
-                  {t("Estadísticas de Calificaciones", "Rating Statistics")}
-                </h3>
-                
-                {[5, 4, 3, 2, 1].map(star => {
-                  const count = calificaciones.filter(c => c.estrellas === star).length;
-                  const percentage = calificaciones.length > 0 ? (count / calificaciones.length) * 100 : 0;
-                  return (
-                    <div key={star} className="flex items-center w-full">
-                      <span className="w-10 flex items-center justify-end font-bold text-[#c81474]">
-                        {star} <Star className="w-4 h-4 ml-1 fill-[#c81474]" />
-                      </span>
-                      <div className={`flex-1 h-3 mx-4 rounded-full overflow-hidden ${isDark ? "bg-neutral-800" : "bg-gray-100"}`}>
-                        <motion.div 
-                          initial={{ width: 0 }} 
-                          animate={{ width: `${percentage}%` }} 
-                          transition={{ duration: 1, ease: "easeOut" }}
-                          className="h-full bg-linear-to-r from-[#c81474] to-pink-500 rounded-full" 
-                        />
+              {/* Parte Derecha: Barras de Estrellas HTML Nativas (Condicional al Master) */}
+              {activarEstrellas && (
+                <div className={`flex flex-col justify-center space-y-3 w-full border-l-0 md:border-l pl-0 md:pl-8 mt-6 md:mt-0 ${isDark ? "border-neutral-800" : "border-gray-200"}`}>
+                  <h3 className={`text-sm font-bold uppercase tracking-widest mb-2 ${isDark ? "text-neutral-400" : "text-gray-500"}`}>
+                    {t("Estadísticas de Calificaciones", "Rating Statistics")}
+                  </h3>
+                  
+                  {[5, 4, 3, 2, 1].map(star => {
+                    const count = calificaciones.filter(c => c.estrellas === star).length;
+                    const percentage = calificaciones.length > 0 ? (count / calificaciones.length) * 100 : 0;
+                    return (
+                      <div key={star} className="flex items-center w-full">
+                        <span className="w-10 flex items-center justify-end font-bold text-[#c81474]">
+                          {star} <Star className="w-4 h-4 ml-1 fill-[#c81474]" />
+                        </span>
+                        <div className={`flex-1 h-3 mx-4 rounded-full overflow-hidden ${isDark ? "bg-neutral-800" : "bg-gray-100"}`}>
+                          <motion.div 
+                            initial={{ width: 0 }} 
+                            animate={{ width: `${percentage}%` }} 
+                            transition={{ duration: 1, ease: "easeOut" }}
+                            className="h-full bg-linear-to-r from-[#c81474] to-pink-500 rounded-full" 
+                          />
+                        </div>
+                        <span className={`w-8 text-left font-bold ${isDark ? "text-neutral-400" : "text-gray-500"}`}>
+                          {count}
+                        </span>
                       </div>
-                      <span className={`w-8 text-left font-bold ${isDark ? "text-neutral-400" : "text-gray-500"}`}>
-                        {count}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
 
             </div>
           </div>
@@ -560,7 +570,6 @@ export default function StandDashboard() {
           </motion.div>
         )}
       </AnimatePresence>
-
     </div>
   );
 }

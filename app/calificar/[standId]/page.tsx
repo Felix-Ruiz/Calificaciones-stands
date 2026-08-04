@@ -10,7 +10,7 @@ import { obtenerInfoEncuesta, enviarCalificacion } from "@/actions/ratingActions
 export default function CalificarPage({ params }: { params: Promise<{ standId: string }> }) {
   const router = useRouter();
   
-  // Usamos el formato oficial y seguro para leer el ID (que tú tenías originalmente)
+  // Usamos el formato oficial y seguro para leer el ID
   const { standId } = use(params);
 
   // Estados de sesión
@@ -34,11 +34,9 @@ export default function CalificarPage({ params }: { params: Promise<{ standId: s
   useEffect(() => {
     const verificarSesion = async () => {
       try {
-        // getSession() no rompe la página y AHORA es rapidísimo gracias al puerto 6543
         const session = await getSession();
         
         if (!session?.user?.id) {
-          // Redirección dura e inmediata si no hay sesión
           const callback = encodeURIComponent(`/calificar/${standId}`);
           window.location.href = `/login?callbackUrl=${callback}`;
           return;
@@ -103,54 +101,66 @@ export default function CalificarPage({ params }: { params: Promise<{ standId: s
     }
   };
 
-  // 1. Pantalla mientras revisa si estás logueado (Tomará milisegundos)
   if (loadingAuth) {
     return (
-      <div className="min-h-screen bg-neutral-950 flex flex-col justify-center items-center text-fuchsia-500">
+      <div className="min-h-screen bg-neutral-950 flex flex-col justify-center items-center text-[#c81474]">
         <Loader2 className="w-12 h-12 animate-spin mb-4" />
         <p className="font-bold tracking-widest uppercase text-sm animate-pulse">Verificando acceso...</p>
       </div>
     );
   }
 
-  // 2. Pantalla mientras trae la info del Stand (Solo la ves si YA iniciaste sesión)
   if (loadingData) {
     return (
-      <div className="min-h-screen bg-neutral-950 flex flex-col justify-center items-center text-fuchsia-500">
+      <div className="min-h-screen bg-neutral-950 flex flex-col justify-center items-center text-[#c81474]">
         <Loader2 className="w-12 h-12 animate-spin mb-4" />
         <p className="font-bold tracking-widest uppercase text-sm animate-pulse">Cargando encuesta...</p>
       </div>
     );
   }
 
-  // 3. Si hay error (Stand no existe, etc)
   if (errorInfo) return (
     <div className="min-h-screen bg-neutral-950 flex flex-col justify-center items-center text-center p-6">
       <AlertTriangle className="w-16 h-16 text-red-500 mb-4" />
       <h1 className="text-2xl font-bold text-white mb-2">Ups, algo salió mal</h1>
       <p className="text-neutral-400 mb-6">{errorInfo}</p>
-      <button onClick={() => window.location.reload()} className="bg-neutral-800 text-white px-6 py-2 rounded-lg hover:bg-neutral-700">Reintentar</button>
+      <button 
+        onClick={() => window.location.reload()} 
+        className="bg-neutral-800 text-white px-6 py-2 rounded-lg hover:bg-neutral-700 transition-colors"
+      >
+        Reintentar
+      </button>
     </div>
   );
 
-  // 4. Si ya calificó
   if (yaCalifico) return (
     <div className="min-h-screen bg-neutral-950 flex flex-col justify-center items-center text-center p-6 relative overflow-hidden">
-      <div className="absolute inset-0 bg-linear-to-b from-fuchsia-900/20 to-neutral-950" />
-      <CheckCircle className="w-24 h-24 text-green-500 mb-6 relative z-10" />
+      <div className="absolute inset-0 bg-linear-to-b from-[#c81474]/20 to-neutral-950" />
+      <CheckCircle className="w-24 h-24 text-[#c81474] mb-6 relative z-10" />
       <h1 className="text-3xl font-bold text-white mb-4 relative z-10">¡Ya calificaste este Stand!</h1>
-      <p className="text-neutral-400 mb-8 relative z-10">Gracias por tu participación. No puedes calificar el mismo stand más de una vez.</p>
-      <button onClick={() => router.push("/cliente")} className="relative z-10 bg-neutral-800 text-white px-8 py-3 rounded-xl font-medium hover:bg-neutral-700 transition-all">
+      <p className="text-neutral-400 mb-8 relative z-10">
+        Gracias por tu participación. No puedes calificar el mismo stand más de una vez.
+      </p>
+      <button 
+        onClick={() => router.push("/cliente")} 
+        className="relative z-10 bg-neutral-800 text-white px-8 py-3 rounded-xl font-medium hover:bg-neutral-700 transition-all"
+      >
         Volver a mi inicio
       </button>
     </div>
   );
 
-  // 5. Encuesta Principal
   return (
     <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      <div className="absolute top-[-10%] right-[-10%] w-72 h-72 bg-fuchsia-600/20 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] left-[-10%] w-72 h-72 bg-purple-600/20 rounded-full blur-[100px] pointer-events-none" />
+      
+      {/* Luces de fondo estilo WEEF */}
+      <div className="absolute top-[-10%] right-[-10%] w-72 h-72 bg-[#c81474]/20 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-[-10%] left-[-10%] w-72 h-72 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
+
+      {/* MARCA DE AGUA */}
+      <div className="absolute inset-0 z-0 flex justify-center items-center pointer-events-none opacity-[0.03]">
+        <img src="/logo.png" alt="WEEF Background" className="w-[80%] h-[80%] object-contain" />
+      </div>
 
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
@@ -158,24 +168,28 @@ export default function CalificarPage({ params }: { params: Promise<{ standId: s
         className="w-full max-w-md relative z-10"
       >
         {exito ? (
-          <div className="bg-neutral-900/80 backdrop-blur-xl border border-green-500/30 rounded-3xl p-10 text-center shadow-[0_0_50px_rgba(34,197,94,0.15)]">
+          <div className="bg-neutral-900/80 backdrop-blur-xl border border-[#c81474]/30 rounded-3xl p-10 text-center shadow-[0_0_50px_rgba(200,20,116,0.15)]">
             <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring" }}>
-              <CheckCircle className="w-20 h-20 text-green-500 mx-auto mb-6" />
+              <CheckCircle className="w-20 h-20 text-[#c81474] mx-auto mb-6" />
             </motion.div>
             <h2 className="text-2xl font-bold text-white mb-2">¡Calificación Enviada!</h2>
             <p className="text-neutral-400">Redirigiendo a tu panel...</p>
           </div>
         ) : (
-          <div className="bg-neutral-900/80 backdrop-blur-xl border border-fuchsia-500/30 rounded-3xl p-8 shadow-[0_0_40px_rgba(217,70,239,0.1)]">
+          <div className="bg-neutral-900/80 backdrop-blur-xl border border-neutral-800 rounded-3xl p-8 shadow-[0_0_40px_rgba(0,0,0,0.5)]">
             <div className="text-center mb-8">
-              <p className="text-fuchsia-500 text-sm font-bold tracking-widest uppercase mb-2">Estás calificando a:</p>
+              <p className="text-[#c81474] text-sm font-bold tracking-widest uppercase mb-2">
+                Estás calificando a:
+              </p>
               <h1 className="text-3xl font-bold text-white">{standNombre}</h1>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
               {activarEstrellas && (
                 <div className="flex flex-col items-center mb-8">
-                  <p className="text-neutral-400 mb-4 text-sm uppercase tracking-wider">Tu puntuación</p>
+                  <p className="text-neutral-400 mb-4 text-sm uppercase tracking-wider">
+                    Tu puntuación
+                  </p>
                   <div className="flex space-x-2">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <button
@@ -189,7 +203,7 @@ export default function CalificarPage({ params }: { params: Promise<{ standId: s
                         <Star 
                           className={`w-10 h-10 transition-colors ${
                             star <= (hoverEstrellas || estrellas) 
-                              ? "text-yellow-400 fill-yellow-400" 
+                              ? "text-yellow-500 fill-yellow-500 drop-shadow-[0_0_10px_rgba(234,179,8,0.5)]" 
                               : "text-neutral-700"
                           }`} 
                         />
@@ -200,14 +214,14 @@ export default function CalificarPage({ params }: { params: Promise<{ standId: s
               )}
 
               <div>
-                <label className="block text-neutral-400 text-sm font-medium mb-2 ml-1">
+                <label className="block text-neutral-400 text-sm font-bold mb-2 ml-1">
                   Comentarios (Obligatorio)
                 </label>
                 <textarea
                   required
                   value={comentario}
                   onChange={(e) => setComentario(e.target.value)}
-                  className="w-full bg-neutral-950/50 border border-neutral-700 rounded-xl p-4 text-white placeholder-neutral-600 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/50 focus:border-fuchsia-500 transition-all resize-none"
+                  className="w-full bg-neutral-950 border border-neutral-800 rounded-xl p-4 text-white placeholder-neutral-600 focus:outline-none focus:ring-1 focus:ring-[#c81474] focus:border-[#c81474] transition-all resize-none"
                   rows={4}
                   placeholder="¿Qué te pareció este stand?"
                 />
@@ -216,7 +230,7 @@ export default function CalificarPage({ params }: { params: Promise<{ standId: s
               <button
                 type="submit"
                 disabled={enviando || !comentario.trim() || (activarEstrellas && estrellas === 0)}
-                className="w-full flex items-center justify-center space-x-2 py-4 px-6 rounded-xl shadow-lg text-white font-bold bg-linear-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 hover:to-purple-500 transition-all uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center space-x-2 py-4 px-6 rounded-xl shadow-[0_0_20px_rgba(200,20,116,0.3)] text-white font-bold bg-linear-to-r from-[#c81474] to-purple-600 hover:from-[#a61060] hover:to-purple-500 transition-all uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed mt-4"
               >
                 {enviando ? (
                   <span>Enviando...</span>

@@ -19,7 +19,7 @@ function LoginContent() {
 
   // ESTADO PWA
   const [showPwaPrompt, setShowPwaPrompt] = useState(false);
-  const [isAppInstalled, setIsAppInstalled] = useState(true); // Por defecto true para evitar parpadeos
+  const [isAppInstalled, setIsAppInstalled] = useState(true);
 
   const searchParams = useSearchParams();
 
@@ -42,17 +42,9 @@ function LoginContent() {
       localStorage.setItem("app-theme", "dark");
     }
 
-    // Detección de PWA Inmediata
+    // Detección de PWA (Solo para mostrar el botón flotante si no está instalada)
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
     setIsAppInstalled(isStandalone);
-    
-    // Si NO está instalada, mostramos el pop-up de inmediato (si no lo ha cerrado antes)
-    if (!isStandalone) {
-      const hasSeenPrompt = localStorage.getItem('pwa-prompt-seen');
-      if (!hasSeenPrompt) {
-        setShowPwaPrompt(true);
-      }
-    }
   }, []);
 
   const toggleLanguage = () => {
@@ -139,7 +131,7 @@ function LoginContent() {
         </button>
       </div>
 
-      {/* BOTÓN FLOTANTE PWA (Solo visible si no está instalada) */}
+      {/* BOTÓN FLOTANTE PWA */}
       {!isAppInstalled && (
         <button 
           onClick={() => setShowPwaPrompt(true)}
@@ -150,10 +142,11 @@ function LoginContent() {
         </button>
       )}
 
+      {/* Luces de fondo optimizadas (blur-3xl no satura el GPU del móvil) */}
       {isDark && (
         <>
-          <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-[#c81474]/20 rounded-full blur-[120px] pointer-events-none" />
-          <div className="absolute bottom-[-10%] left-[-10%] w-96 h-96 bg-purple-600/20 rounded-full blur-[120px] pointer-events-none" />
+          <div className="absolute top-[-10%] right-[-10%] w-72 h-72 bg-[#c81474]/20 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-[-10%] left-[-10%] w-72 h-72 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
         </>
       )}
 
