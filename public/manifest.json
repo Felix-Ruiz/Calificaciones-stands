@@ -1,7 +1,7 @@
 {
-  "name": "WEEF 2026 App",
-  "short_name": "WEEF 2026",
-  "description": "App Oficial de Calificación y Sorteo WEEF 2026",
+  "name": "STANDS 2026 App",
+  "short_name": "STANDS 2026",
+  "description": "App Oficial de Calificación y Sorteo STANDS 2026",
   "start_url": "/login",
   "display": "standalone",
   "background_color": "#0a0a0a",

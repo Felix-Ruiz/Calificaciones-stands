@@ -142,7 +142,7 @@ function LoginContent() {
         </button>
       )}
 
-      {/* Luces de fondo optimizadas (blur-3xl no satura el GPU del móvil) */}
+      {/* Luces de fondo optimizadas */}
       {isDark && (
         <>
           <div className="absolute top-[-10%] right-[-10%] w-72 h-72 bg-[#c81474]/20 rounded-full blur-3xl pointer-events-none" />
@@ -158,7 +158,7 @@ function LoginContent() {
         <div className={`absolute inset-0 z-0 pointer-events-none ${isDark ? "opacity-[0.03]" : "opacity-10"}`}>
           <img 
             src="/logo.png" 
-            alt="WEEF Background" 
+            alt="STANDS Background" 
             className="w-full h-full object-cover"
           />
         </div>
@@ -265,7 +265,7 @@ function LoginContent() {
                 <img src="/icon.png" alt="App Icon" className="w-16 h-16 rounded-2xl shadow-md" />
                 <div>
                   <h3 className={`font-black text-lg ${isDark ? "text-white" : "text-gray-900"}`}>
-                    {t("Instala WEEF 2026", "Install WEEF 2026")}
+                    {t("Instala STANDS 2026", "Install STANDS 2026")}
                   </h3>
                   <p className={`text-sm font-medium ${isDark ? "text-[#c81474]" : "text-[#c81474]"}`}>
                     {t("Para una experiencia fluida", "For a seamless experience")}

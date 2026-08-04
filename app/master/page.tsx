@@ -21,7 +21,7 @@ export default function MasterDashboard() {
   const [loading, setLoading] = useState(false);
   const [mensaje, setMensaje] = useState("");
   
-  // ESTADO DEL MENÚ MÓVIL
+  // ESTADO DEL MENÚ MÓVIL (En Desktop usa CSS Hover)
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
   // ESTADOS DE TEMA E IDIOMA
@@ -542,10 +542,10 @@ export default function MasterDashboard() {
       <main className="flex-1 h-full overflow-y-auto relative flex flex-col p-6 md:p-10">
         
         {/* MARCA DE AGUA */}
-        <div className={`absolute inset-0 z-0 flex justify-center items-center pointer-events-none ${isDark ? "opacity-[0.03]" : "opacity-5"}`}>
+        <div className={`absolute inset-0 z-0 flex justify-center items-center pointer-events-none ${isDark ? "opacity-10" : "opacity-[0.05]"}`}>
           <img 
             src="/logo.png" 
-            alt="WEEF Background" 
+            alt="STANDS Background" 
             className="w-[80%] h-[80%] object-contain" 
           />
         </div>
@@ -1130,7 +1130,7 @@ export default function MasterDashboard() {
       <AnimatePresence>
         {isEditClienteModalOpen && editingCliente && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setIsEditClienteModalOpen(false)}>
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className={`border rounded-3xl p-8 max-w-md w-full shadow-2xl relative max-h-[90vh] flex flex-col ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-gray-200"}`} onClick={(e) => e.stopPropagation()}>
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className={`border rounded-3xl p-8 max-w-md w-full shadow-2xl relative max-h-[90vh] flex flex-col ${isDark ? "bg-neutral-900 border-[#c81474]" : "bg-white border-[#c81474]"}`} onClick={(e) => e.stopPropagation()}>
               <button onClick={() => setIsEditClienteModalOpen(false)} className={`absolute top-6 right-6 hover:text-[#c81474] ${isDark ? "text-neutral-500" : "text-gray-400"}`}><X className="w-6 h-6" /></button>
               
               <h2 className="text-2xl font-bold mb-6 shrink-0">{t("Editar Visitante", "Edit Visitor")}</h2>
@@ -1168,9 +1168,7 @@ export default function MasterDashboard() {
                 </div>
                 
                 <div className={`pt-4 mt-2 border-t shrink-0 ${isDark ? "border-neutral-800" : "border-gray-200"}`}>
-                  <button type="submit" disabled={loading} className="w-full bg-[#c81474] hover:bg-[#a61060] text-white font-bold py-3 px-4 rounded-xl transition-all shadow-md disabled:opacity-50">
-                    {t("Guardar Cambios", "Save Changes")}
-                  </button>
+                  <button type="submit" disabled={loading} className="w-full bg-[#c81474] hover:bg-[#a61060] text-white font-bold py-3 px-4 rounded-xl transition-all shadow-md disabled:opacity-50">{t("Guardar Cambios", "Save Changes")}</button>
                 </div>
               </form>
             </motion.div>
@@ -1181,7 +1179,7 @@ export default function MasterDashboard() {
       <AnimatePresence>
         {detallesAbiertos && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setDetallesAbiertos(false)}>
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className={`border rounded-3xl p-8 max-w-4xl w-full shadow-2xl relative max-h-[80vh] flex flex-col ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-gray-200"}`} onClick={(e) => e.stopPropagation()}>
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className={`border rounded-3xl p-8 max-w-4xl w-full shadow-2xl relative max-h-[80vh] flex flex-col ${isDark ? "bg-neutral-900 border-[#c81474]" : "bg-white border-[#c81474]"}`} onClick={(e) => e.stopPropagation()}>
               <button onClick={() => setDetallesAbiertos(false)} className={`absolute top-6 right-6 p-2 rounded-full transition-colors ${isDark ? "text-neutral-500 hover:text-white bg-neutral-800 hover:bg-neutral-700" : "text-gray-500 hover:text-gray-900 bg-gray-100 hover:bg-gray-200"}`}><X className="w-5 h-5" /></button>
               
               {tipoDetalle === "GANADOR" ? (

@@ -13,13 +13,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "WEEF 2026",
-  description: "App Oficial WEEF 2026",
+  title: "STANDS 2026",
+  description: "App Oficial STANDS 2026",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "WEEF 2026",
+    title: "STANDS 2026",
   },
 };
 
